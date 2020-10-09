@@ -1,0 +1,8 @@
+numpy
+pandas
+xlrd
+simpy
+contextlib
+joblib
+tqdm
+multiprocessing
