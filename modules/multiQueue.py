@@ -1,9 +1,11 @@
 import simpy 
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 import math
 import os
+from modules import dataAnalysis
 
 class Nadia_Simulation:
 
@@ -14,6 +16,10 @@ class Nadia_Simulation:
         self.replication = replication
         self.random_stream = np.random.RandomState()
         self.random_stream.seed(replication)
+
+        self.schedule = sim_params.schedule
+        for i in range(len(self.schedule)):
+            self.schedule[i] = np.cumsum(self.schedule[i])
 
         self.warm_up_days = sim_params.warm_up_days
         self.duration_days = sim_params.duration_days
@@ -166,24 +172,18 @@ class Nadia_Simulation:
     # It lets the previous process finish (allows overflowing) and then takes from the overflow time until the next capacity block
     def scheduledCapacity(self, day, resource):
         day_of_week = day%7
-        schedule = []
+        schedule = self.schedule[day_of_week]
 
-        if (day_of_week >= 5):
-            schedule = [[24,1]]
-        else:
-            schedule = [[8,1],[16,0],[24,1]]
-
-        # print(schedule)
-        for element in schedule:
-            if element[1] == 1:
+        for item in range(len(schedule)):
+            if (item%2) == 0:
                 with resource.request(priority=-100) as req:
                     yield req
                     hour_of_day = self.env.now%1
-                    time_until_next_stage = (element[0]/24) - hour_of_day
+                    time_until_next_stage = (schedule[item]/24) - hour_of_day
                     yield self.env.timeout(time_until_next_stage)
             else:
                 hour_of_day = self.env.now%1
-                time_until_next_stage = (element[0]/24) - hour_of_day
+                time_until_next_stage = (schedule[item]/24) - hour_of_day
                 yield self.env.timeout(time_until_next_stage)        
 
     # This function deals with generating arrivals, waitlist, and simulate scheduled capacity (main simulation logic)
@@ -229,6 +229,43 @@ class Nadia_Simulation:
         self.env.process(self.arrivalsNode())
         self.env.run(until=self.duration_days)
     
+    
+    # This function calculates aggregate results
+    def calculateAggregate(self):
+
+        # Patient Data
+        patient_data = []
+        patient_data.append(['Replication', 'ID', 'Arrived', 'Queued To', 'Start Service', 'End Service', 'Scan Results', 'Biopsy Results', 'Post Scan Status'])
+        for i in range(len(self.patient_results[self.warm_up_days:])):
+            patient_data.append([
+                self.patient_results[i+self.warm_up_days].replication, self.patient_results[i+self.warm_up_days].patient_id, 
+                self.patient_results[i+self.warm_up_days].arrived, self.patient_results[i+self.warm_up_days].queued_hospital, 
+                self.patient_results[i+self.warm_up_days].start_scan, self.patient_results[i+self.warm_up_days].end_scan, 
+                self.patient_results[i+self.warm_up_days].scan_result, self.patient_results[i+self.warm_up_days].biopsy_results, 
+                self.patient_results[i+self.warm_up_days].post_scan_status
+            ])
+        patient_data = np.array(patient_data)
+        patient_aggregate = pd.DataFrame(data=patient_data[1:], columns=patient_data[0])
+        del patient_data
+
+        patient_aggregate = patient_aggregate.pipe(dataAnalysis.preProcessing).pipe(dataAnalysis.patientDataTypesChange).pipe(dataAnalysis.basicColumnsPatientData)
+        self.cancer_aggregate = patient_aggregate.pipe(dataAnalysis.cancerDetailsAnalysis_Replication)
+        self.time_in_system_aggregate = patient_aggregate.pipe(dataAnalysis.timeInSystemAnalysis_Replication)
+        self.total_aggregate = patient_aggregate.pipe(dataAnalysis.totalPatientDetailsAnalysis_Replication)
+        del patient_aggregate
+
+
+        # Queue Data
+        queue_data = []
+        queue_data.insert(0, ['Replication', 'Day', 'Queue Amount'])
+        for i in range(len(self.daily_queue_data[self.warm_up_days:])):
+            queue_data.append([self.replication, i+self.warm_up_days, self.daily_queue_data[i+self.warm_up_days]])
+        queue_data = np.array(queue_data)
+        queue_data = pd.DataFrame(data=queue_data[1:], columns=queue_data[0])
+        queue_data = queue_data.pipe(dataAnalysis.preProcessing).pipe(dataAnalysis.queueDataTypesChange)
+    
+        self.queue_aggregate = queue_data.pipe(dataAnalysis.aggregateQueueAnalysis_Replication)
+        del queue_data
 
     # This function outputs raw results
     def outputRaw(self, output_string):

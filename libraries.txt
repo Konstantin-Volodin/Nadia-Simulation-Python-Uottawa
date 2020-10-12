@@ -1,8 +1,6 @@
-numpy
-pandas
-xlrd
-simpy
-contextlib
-joblib
-tqdm
-multiprocessing
+pip install numpy
+pip install pandas
+pip install xlrd
+pip install simpy
+pip install joblib
+pip install tqdm
