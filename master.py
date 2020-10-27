@@ -24,6 +24,7 @@ def readParameters(string_path, sim_param):
     gen_sheet = book.sheet_by_name("General Parameters")
     dist_sheet = book.sheet_by_name("Distributions")
     suspic_delay_sheet = book.sheet_by_name("Suspicious Delay Distribution")
+    schedule_sheet = book.sheet_by_name("Schedules Data")
 
     sim_param.replications = int(gen_sheet.cell_value(1,0))
     sim_param.warm_up_days = int(gen_sheet.cell_value(1,1))
@@ -57,6 +58,10 @@ def readParameters(string_path, sim_param):
             i += 1
         except IndexError:
             break
+
+    for i in range(7):
+        sim_params.schedule[i] = [int(float(j)) for j in str(schedule_sheet.cell_value(i+1, 1)).split(',')]
+
 def printParams(sim_param):
     print(f'Replications: {sim_param.replications}, Warm-Up: {sim_param.warm_up_days}, Duration: {sim_param.duration_days}')
     print(f'Initial Wait List: {sim_param.initial_wait_list}, Arrival Rate: {sim_param.arrival_rate_per_day}, Service Time {sim_param.service_time*60*24}')
@@ -96,6 +101,15 @@ def tqdm_joblib(tqdm_object):
 class simulationParameters:
     def __init__(self):
         self.directory = os.path.dirname(os.path.realpath(__file__))
+        self.schedule = [
+            [8,8,8],
+            [8,8,8],
+            [8,8,8],
+            [8,8,8],
+            [8,8,8],
+            [24],
+            [24]
+        ]
 
         self.replications = 100
         self.warm_up_days = 50
@@ -127,12 +141,14 @@ def multiCoreSimulationMultiQueue(sim_params, repl):
     env = simpy.Environment()
     simulation = multiQueue.Nadia_Simulation(env, sim_params, repl)
     simulation.mainSimulation()
-    return simulation.patient_results[sim_params.warm_up_days:], simulation.daily_queue_data[sim_params.warm_up_days:]
+    simulation.calculateAggregate()
+    return simulation.patient_results, simulation.daily_queue_data, simulation.cancer_aggregate, simulation.time_in_system_aggregate, simulation.total_aggregate, simulation.queue_aggregate
 def signleCoreSimulationSingleQueue(sim_params, repl):
     env = simpy.Environment()
     simulation = singleQueue.Nadia_Simulation(env, sim_params, repl)
     simulation.mainSimulation()
-    return simulation.patient_results[sim_params.warm_up_days:], simulation.daily_queue_data[sim_params.warm_up_days:]
+    simulation.calculateAggregate()
+    return simulation.patient_results, simulation.daily_queue_data, simulation.cancer_aggregate, simulation.time_in_system_aggregate, simulation.total_aggregate, simulation.queue_aggregate
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 4: Generate Parameters ~~~~~~~~~~~~~~~~~~~~~
@@ -140,17 +156,22 @@ def signleCoreSimulationSingleQueue(sim_params, repl):
 sim_params = simulationParameters()
 readParameters(f"{sim_params.directory}/input/input_parameters", sim_params)
 pd.set_option("display.max_rows", None, "display.max_columns", None, 'display.expand_frame_repr', False)
-num_cores = math.floor(multiprocessing.cpu_count() * 0.75)
-
+num_cores = multiprocessing.cpu_count()
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 4a: Deletes Files ~~~~~~~~~~~~~~~~~~~~~
 silentremove(f"{sim_params.directory}/output/raw_multi_patients.txt")
 silentremove(f"{sim_params.directory}/output/raw_multi_queue.txt")
-silentremove(f"{sim_params.directory}/output/aggregate_multi.txt")
+silentremove(f"{sim_params.directory}/output/replication_multi.html")
+silentremove(f"{sim_params.directory}/output/aggregate_multi.html")
 silentremove(f"{sim_params.directory}/output/raw_single_patients.txt")
 silentremove(f"{sim_params.directory}/output/raw_single_queue.txt")
-silentremove(f"{sim_params.directory}/output/aggregate_single.txt")
+silentremove(f"{sim_params.directory}/output/aggregate_single.html")
+silentremove(f"{sim_params.directory}/output/replication_single.html")
 
+# env = simpy.Environment()
+# simulation = multiQueue.Nadia_Simulation(env, sim_params, 0)
+# # print(simulation.schedule)    
+# simulation.scheduledCapacity(0)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 5: Perform Multi Queue ~~~~~~~~~~~~~~~~~~~~~
 # Simulation
@@ -168,12 +189,48 @@ with open(f"{sim_params.directory}/output/raw_multi_queue.txt", "w") as text_fil
     print('Replication, Day, Queue Amount', file=text_file)
     for repl in range(len(multi_final_results)):
         for day in range(len(multi_final_results[repl][1])):
-            print(f"{repl}, {day+sim_params.warm_up_days}, {multi_final_results[repl][1][day]}", file=text_file)
+            print(f"{repl}, {day}, {multi_final_results[repl][1][day]}", file=text_file)
 
-# Aggregate Results
+# Replication Data
+print('Calculates Replication Details Data')
+cancer_aggregate = [] 
+time_in_system_aggregate = []
+total_aggregate = [] 
+queue_aggregate = []
+for repl in range(len(multi_final_results)):    
+    if repl == 0:
+        cancer_aggregate = multi_final_results[repl][2]
+        time_in_system_aggregate = multi_final_results[repl][3]
+        total_aggregate = multi_final_results[repl][4]
+        queue_aggregate = multi_final_results[repl][5]
+    else:
+        cancer_aggregate = cancer_aggregate.append([multi_final_results[repl][2]])
+        time_in_system_aggregate = time_in_system_aggregate.append([multi_final_results[repl][3]])
+        total_aggregate = total_aggregate.append([multi_final_results[repl][4]])
+        queue_aggregate = queue_aggregate.append([multi_final_results[repl][5]])
+
+with open(f"{sim_params.directory}/output/replication_multi.html", 'w') as html_file:
+   html_file.write(
+       cancer_aggregate.to_html() + '\n\n' +
+       time_in_system_aggregate.to_html() + '\n\n' +
+       total_aggregate.to_html() + '\n\n' +
+       queue_aggregate.to_html() + '\n\n'
+   )
+del multi_final_results
+
+# Aggregate Data
 print('Calculates Aggregate Data')
-dataAnalysis.main_analysis(f"{sim_params.directory}/output/raw_multi_patients", f"{sim_params.directory}/output/raw_multi_queue", f"{sim_params.directory}/output/aggregate_multi")
-
+cancer_aggregate = cancer_aggregate.pipe(dataAnalysis.cancerDetailsAnalysis_Simulation)
+time_in_system_aggregate = time_in_system_aggregate.pipe(dataAnalysis.timeInSystemAnalysis_Simulation)
+total_aggregate = total_aggregate.pipe(dataAnalysis.totalPatientDetailsAnalysis_Simulation)
+queue_aggregate = queue_aggregate.pipe(dataAnalysis.aggregateQueueAnalysis_Simulation)
+with open(f"{sim_params.directory}/output/aggregate_multi.html", 'w') as html_file:
+   html_file.write(
+       cancer_aggregate.to_html() + '\n\n' +
+       time_in_system_aggregate.to_html() + '\n\n' +
+       total_aggregate.to_html() + '\n\n' +
+       queue_aggregate.to_html() + '\n\n'
+   )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 6: Perform Single Queue ~~~~~~~~~~~~~~~~~~~~~
 # Simulation
@@ -193,6 +250,43 @@ with open(f"{sim_params.directory}/output/raw_single_queue.txt", "w") as text_fi
         for day in range(len(single_final_results[repl][1])):
             print(f"{repl}, {day+sim_params.warm_up_days}, {single_final_results[repl][1][day]}", file=text_file)
 
-# Aggregate Results
+# Replication Data
+print('Calculates Replication Details Data')
+cancer_aggregate = [] 
+time_in_system_aggregate = []
+total_aggregate = [] 
+queue_aggregate = []
+for repl in range(len(single_final_results)):
+    if repl == 0:
+        cancer_aggregate = single_final_results[repl][2]
+        time_in_system_aggregate = single_final_results[repl][3]
+        total_aggregate = single_final_results[repl][4]
+        queue_aggregate = single_final_results[repl][5]
+    else:
+        cancer_aggregate = cancer_aggregate.append([single_final_results[repl][2]])
+        time_in_system_aggregate = time_in_system_aggregate.append([single_final_results[repl][3]])
+        total_aggregate = total_aggregate.append([single_final_results[repl][4]])
+        queue_aggregate = queue_aggregate.append([single_final_results[repl][5]])
+
+with open(f"{sim_params.directory}/output/replication_single.html", 'w') as html_file:
+   html_file.write(
+       cancer_aggregate.to_html() + '\n\n' +
+       time_in_system_aggregate.to_html() + '\n\n' +
+       total_aggregate.to_html() + '\n\n' +
+       queue_aggregate.to_html() + '\n\n'
+   )
+del single_final_results
+
+# Aggregate Data
 print('Calculates Aggregate Data')
-dataAnalysis.main_analysis(f"{sim_params.directory}/output/raw_single_patients", f"{sim_params.directory}/output/raw_single_queue", f"{sim_params.directory}/output/aggregate_single")
+cancer_aggregate = cancer_aggregate.pipe(dataAnalysis.cancerDetailsAnalysis_Simulation)
+time_in_system_aggregate = time_in_system_aggregate.pipe(dataAnalysis.timeInSystemAnalysis_Simulation)
+total_aggregate = total_aggregate.pipe(dataAnalysis.totalPatientDetailsAnalysis_Simulation)
+queue_aggregate = queue_aggregate.pipe(dataAnalysis.aggregateQueueAnalysis_Simulation)
+with open(f"{sim_params.directory}/output/aggregate_single.html", 'w') as html_file:
+   html_file.write(
+       cancer_aggregate.to_html() + '\n\n' +
+       time_in_system_aggregate.to_html() + '\n\n' +
+       total_aggregate.to_html() + '\n\n' +
+       queue_aggregate.to_html() + '\n\n'
+   )
