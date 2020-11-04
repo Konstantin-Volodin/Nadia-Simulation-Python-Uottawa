@@ -41,8 +41,8 @@ def cancerDetailsAnalysis_Replication(df):
     df = df[df['post_scan_status'] != '']
     df_cancer_details = df.groupby(['post_scan_status', 'replication']).id.agg(['count']).reset_index()
     df_cancer_details['percentage_of_total_scans'] = df_cancer_details['count'] / df_cancer_details.groupby(['replication'])['count'].transform('sum') * 100
-    df_cancer_details['percentage_of_positive_biopsies'] = df_cancer_details['count'] / df_cancer_details[df_cancer_details['post_scan_status'].isin(['Stage_1', 'Stage_2', 'Stage_3', 'Stage_4'])].groupby('replication')['count'].transform('sum') * 100
-    df_cancer_details = df_cancer_details[df_cancer_details['post_scan_status'].isin(['Stage_1', 'Stage_2', 'Stage_3', 'Stage_4'])]
+    df_cancer_details['percentage_of_positive_biopsies'] = df_cancer_details['count'] / df_cancer_details[df_cancer_details['post_scan_status'].isin(['Stage_1/2', 'Stage_3/4'])].groupby('replication')['count'].transform('sum') * 100
+    df_cancer_details = df_cancer_details[df_cancer_details['post_scan_status'].isin(['Stage_1/2', 'Stage_3/4'])]
     return df_cancer_details
 def cancerDetailsAnalysis_Simulation(df_cancer_details):
     df_cancer_details = df_cancer_details.drop(['replication'], axis=1).groupby(['post_scan_status']).agg(['mean', 'std', 'max', 'min', 'median'])
@@ -103,3 +103,42 @@ def aggregateQueueAnalysis_Simulation(df_aggregated_queue):
     #     'queue_amount_max': 'overall_max_in_queue'
     # })
     return df_aggregated_queue
+
+# Analysis of Utilization Data
+def aggregateUtilizationAnalysis_Replication(df, minutes_array, total_days):
+
+    df = df[df['post_scan_status'] != '']
+    df['day'] = np.floor(df['start_service'])
+    df['day_of_week'] = df['day'].mod(7)
+
+    # Adds utilization per patient
+    new_column = []
+    for index, row in df.iterrows():
+        new_column.append(row['service_time'] / (minutes_array[int(row['day_of_week'])]))
+    df['utilization'] = new_column
+
+    # Aggregates utilization by day
+    df = df[['replication', 'day', 'utilization']].groupby(['replication','day']).agg(['sum']).reset_index().pipe(flattenMultiIndex)
+    df = df.rename(columns={'replication_':'replication','day_':'day','utilization_sum':'utilization'})
+
+    # Reindex
+    new_index = [i for i in range(total_days)]
+    repl = df['replication'].unique()
+    df = df.set_index('day').reindex(new_index, fill_value=0).reset_index()
+    df['day_of_week'] = df['day'].mod(7)
+    df = df[df['day_of_week'] != 5]
+    df = df[df['day_of_week'] != 6]
+    df = df[['replication', 'utilization']]
+    df['replication'] = repl[0]
+
+    # Aggregates utilization for replication
+    df = df.groupby(['replication']).agg(['mean', 'max']).reset_index().pipe(flattenMultiIndex) 
+    df = df.rename(columns={'replication_':'replication'})
+
+    return df
+def aggregateUtilizationAnalysis_Simulation(df):
+    df = df.drop(columns={'replication'}).agg({
+        'utilization_mean': ['mean', 'std', 'median'],
+        'utilization_max': ['mean', 'std', 'max']
+    })
+    return df

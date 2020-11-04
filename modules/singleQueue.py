@@ -24,24 +24,24 @@ class Nadia_Simulation:
         self.warm_up_days = sim_params.warm_up_days
         self.duration_days = sim_params.duration_days
         self.initial_wait_list = sim_params.initial_wait_list
-        self.arrival_rate = sim_params.arrival_rate_per_day
+        self.arrival_rate = sim_params.arrival_rate
         self.service_time = sim_params.service_time
         self.total_scan_capacity = simpy.PriorityResource(env, sim_params.ottawa_scan_capacity+sim_params.renfrew_scan_capacity+sim_params.cornwall_scan_capacity)
 
         self.scan_results_names = sim_params.results_names
         self.scan_results_distribution = np.cumsum(sim_params.result_distribution)
         self.negative_return_probability = sim_params.negative_return_probability
-        self.negative_return_delay = sim_params.negative_return_delay
+        self.delay_distribution = sim_params.delay_distribution
         self.suspicious_need_biopsy_probablity = sim_params.suspicious_need_biopsy_probablity
         self.biopsy_positive_result_probablity = sim_params.biopsy_positive_result_probablity
         self.cancer_names = sim_params.cancer_types
         self.cancer_results_distribution = np.cumsum(sim_params.cancer_probability_distribution)
-
-        self.suspicious_delay_propbability_distribution = np.cumsum(sim_params.suspicious_delay_propbability_distribution)
-        self.suspicious_delay_duration = sim_params.suspicious_delay_duration
+        self.cancer_growth_rates = sim_params.cancer_growth_rate
+        self.cancer_growth_interval = sim_params.cancer_growth_interval
 
         self.patient_results = []
         self.daily_queue_data = []
+        self.historic_arrival_rate_external = [self.arrival_rate for i in range(self.duration_days)]
 
 
     # The following 3 functions deal with process a patient goes through
@@ -79,86 +79,93 @@ class Nadia_Simulation:
         results = {'Delay': 0, 'In System': True}
         scan_res = self.random_stream.rand()
 
-        # If Negative
-        if scan_res <= self.scan_results_distribution[0]:
-            patient.scan_result = self.scan_results_names[0]
-            patient.biopsy_results = 'not performed'
+        # Scan Results
+        for i in range(len(self.scan_results_distribution)):
+            if scan_res <= self.scan_results_distribution[i]:
+                patient.scan_result = self.scan_results_names[i]
+                break    
+            
+        # Preparing Parameters for Later
+        patient_need_biopsy = False
 
+        # Scan decisions
+        # If Negative Scan
+        if patient.scan_result == self.scan_results_names[0]:   
+            patient.biopsy_results = 'not performed'         
+            # Negative Balking
             negative_return = self.random_stream.rand()
             if not (negative_return < self.negative_return_probability):
                 results['In System'] = False
                 patient.post_scan_status = 'balked'
-            else:
-                patient.post_scan_status = f'returns in {self.negative_return_delay} days'
-                results['Delay'] = self.negative_return_delay
 
-
-        # If suspicious
-        elif scan_res <= self.scan_results_distribution[1]:
-            patient.scan_result = self.scan_results_names[1]
-
+        # If Suspicious Scan
+        elif patient.scan_result == self.scan_results_names[1]:
             need_biopsy = self.random_stream.rand()
             if need_biopsy <= self.suspicious_need_biopsy_probablity:
+                patient_need_biopsy = True
 
-                biopsy_results = self.random_stream.rand()
-                if biopsy_results <= self.biopsy_positive_result_probablity:
-                    results['In System'] = False
-                    patient.biopsy_results = 'positive biopsy'
-                    
-                    cancer_type = self.random_stream.rand()
-                    for cancer_item in range(len(self.cancer_results_distribution)):
-                        if cancer_type <= self.cancer_results_distribution[cancer_item]:
-                            patient.post_scan_status = self.cancer_names[cancer_item]
-                            break
+        # If Positive Scan
+        elif patient.scan_result == self.scan_results_names[2]:
+            patient_need_biopsy = True
 
-                else:
-                    patient.biopsy_results = 'negative biopsy'
-                    suspicious_delay = self.random_stream.rand()
-                    for delay_item in range(len(self.suspicious_delay_propbability_distribution)):
-                        if suspicious_delay <= self.suspicious_delay_propbability_distribution[delay_item]:
-                            patient.post_scan_status = f'returns in {self.suspicious_delay_duration[delay_item]} days'
-                            results['Delay'] = self.suspicious_delay_duration[delay_item]
-                            break
-
-            else:
-                patient.biopsy_results = 'not performed'
-
-                suspicious_delay = self.random_stream.rand()
-                for delay_item in range(len(self.suspicious_delay_propbability_distribution)):
-                    if suspicious_delay <= self.suspicious_delay_propbability_distribution[delay_item]:
-                        patient.post_scan_status = f'returns in {self.suspicious_delay_duration[delay_item]} days'
-                        results['Delay'] = self.suspicious_delay_duration[delay_item]
-                        break
-
-
-
-        # If positive
+        # Generates biopsy results
+        if patient_need_biopsy == True:
+            self.generateBiopsyResults(patient)    
         else:
-            patient.scan_result = self.scan_results_names[2]
+            patient.biopsy_results = 'not performed'
+        
+        if patient.biopsy_results == 'positive biopsy':
+            results['In System'] = False
 
-            biopsy_results = self.random_stream.rand()
-            if biopsy_results < self.biopsy_positive_result_probablity:
-                results['In System'] = False
-                patient.biopsy_results = 'positive biopsy'
+        # Generates delay amount
+        if patient.biopsy_results != 'positive biopsy' and results['In System'] == True:
+            if patient.scan_result == self.scan_results_names[0] or patient.scan_result == self.scan_results_names[1]:
+                delay_value= self.random_stream.rand()
+                for delay_item in range(len(self.delay_distribution[patient.scan_result]['Delay Prob'])):
+                    if delay_value <= self.delay_distribution[patient.scan_result]['Delay Prob'][delay_item]:
+                        patient.post_scan_status = f'returns in {self.delay_distribution[patient.scan_result]["Delay Numb"][delay_item]} days'
+                        results['Delay'] = self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]
 
-                cancer_type = self.random_stream.rand()
-                for cancer_item in range(len(self.cancer_results_distribution)):
-                    if cancer_type <= self.cancer_results_distribution[cancer_item]:
-                        patient.post_scan_status = self.cancer_names[cancer_item]
-                        break
-
-            else:
-                patient.biopsy_results = 'negative biopsy'
-
-                suspicious_delay = self.random_stream.rand()
-                for delay_item in range(len(self.suspicious_delay_propbability_distribution)):
-                    if suspicious_delay <= self.suspicious_delay_propbability_distribution[delay_item]:
-                        results['Delay'] = self.suspicious_delay_duration[delay_item]
-                        patient.post_scan_status = f'returns in {self.suspicious_delay_duration[delay_item]} days'
+                        future_date = int((np.floor(patient.arrived) + self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]))
+                        if future_date < self.duration_days and self.historic_arrival_rate_external[future_date] >= 1:
+                            self.historic_arrival_rate_external[future_date] = self.historic_arrival_rate_external[future_date] - 1
                         break
 
         return results
+    def generateBiopsyResults(self, patient):
+        biopsy_results = self.random_stream.rand()
+        if biopsy_results <= self.biopsy_positive_result_probablity:
+            patient.biopsy_results = 'positive biopsy'
+        else:
+            patient.biopsy_results = 'negative biopsy'
+        
+        if patient.biopsy_results == 'positive biopsy':
 
+            # Calculates Adjusted Probabilities
+            wait_time = patient.start_scan - patient.arrived
+            curr_interval = 0
+            cancer_adjusted_probs = self.cancer_results_distribution
+            while True:
+                if (curr_interval+self.cancer_growth_interval) > wait_time:
+                    break
+                else:
+                    curr_interval += self.cancer_growth_interval
+                    for i in range(len(cancer_adjusted_probs)):
+                        cancer_adjusted_probs[i] = cancer_adjusted_probs[i] * self.cancer_growth_rates[i]
+                    cancer_prob_sum = np.sum(cancer_adjusted_probs)
+                    for i in range(len(cancer_adjusted_probs)):
+                        cancer_adjusted_probs[i] = cancer_adjusted_probs[i] / cancer_prob_sum
+            
+            # Generates Cancer Stage
+            cancer_type = self.random_stream.rand()
+            for i in range(len(cancer_adjusted_probs)):
+                if cancer_type <= cancer_adjusted_probs[i]:
+                    patient.post_scan_status = self.cancer_names[i]
+
+            if patient.post_scan_status == self.cancer_names[0] or  patient.post_scan_status == self.cancer_names[1]:
+                patient.post_scan_status = "Stage_1/2"
+            else:
+                patient.post_scan_status = "Stage_3/4"
 
     # The following function simulates a schedule for resource capacity
     # It works as follows (a high priority resource takes up the capacity at times when there is no capacity)
@@ -198,7 +205,7 @@ class Nadia_Simulation:
                 
 
             # Daily Arrivals
-            for patient in range(self.random_stream.poisson(self.arrival_rate)):
+            for patient in range(self.random_stream.poisson(self.historic_arrival_rate_external[day])):
                 self.env.process(self.patientProcess(patId))
                 patId += 1
             
@@ -218,27 +225,43 @@ class Nadia_Simulation:
 
     # This function calculates aggregate results
     def calculateAggregate(self):
+        
         # Patient Data
         patient_data = []
         patient_data.append(['Replication', 'ID', 'Arrived', 'Queued To', 'Start Service', 'End Service', 'Scan Results', 'Biopsy Results', 'Post Scan Status'])
-        for i in range(len(self.patient_results[self.warm_up_days:])):
-            patient_data.append([
-                self.patient_results[i+self.warm_up_days].replication, self.patient_results[i+self.warm_up_days].patient_id, 
-                self.patient_results[i+self.warm_up_days].arrived, self.patient_results[i+self.warm_up_days].queued_hospital, 
-                self.patient_results[i+self.warm_up_days].start_scan, self.patient_results[i+self.warm_up_days].end_scan, 
-                self.patient_results[i+self.warm_up_days].scan_result, self.patient_results[i+self.warm_up_days].biopsy_results, 
-                self.patient_results[i+self.warm_up_days].post_scan_status
-            ])
+        for i in range(len(self.patient_results)):
+            if self.patient_results[i].arrived >= self.warm_up_days:
+                patient_data.append([
+                    self.patient_results[i+self.warm_up_days].replication, self.patient_results[i+self.warm_up_days].patient_id, 
+                    self.patient_results[i+self.warm_up_days].arrived, self.patient_results[i+self.warm_up_days].queued_hospital, 
+                    self.patient_results[i+self.warm_up_days].start_scan, self.patient_results[i+self.warm_up_days].end_scan, 
+                    self.patient_results[i+self.warm_up_days].scan_result, self.patient_results[i+self.warm_up_days].biopsy_results, 
+                    self.patient_results[i+self.warm_up_days].post_scan_status
+                ])
         patient_data = np.array(patient_data)
         patient_aggregate = pd.DataFrame(data=patient_data[1:], columns=patient_data[0])
         del patient_data
 
         patient_aggregate = patient_aggregate.pipe(dataAnalysis.preProcessing).pipe(dataAnalysis.patientDataTypesChange).pipe(dataAnalysis.basicColumnsPatientData)
-        self.cancer_aggregate = patient_aggregate.pipe(dataAnalysis.cancerDetailsAnalysis_Replication)
-        self.time_in_system_aggregate = patient_aggregate.pipe(dataAnalysis.timeInSystemAnalysis_Replication)
-        self.total_aggregate = patient_aggregate.pipe(dataAnalysis.totalPatientDetailsAnalysis_Replication)
-        del patient_aggregate
 
+        self.cancer_aggregate = patient_aggregate.pipe(dataAnalysis.cancerDetailsAnalysis_Replication)
+        # print(self.cancer_aggregate)
+        self.time_in_system_aggregate = patient_aggregate.pipe(dataAnalysis.timeInSystemAnalysis_Replication)
+        # print(self.time_in_system_aggregate)
+        self.total_aggregate = patient_aggregate.pipe(dataAnalysis.totalPatientDetailsAnalysis_Replication)
+        # print(self.total_aggregate)
+
+        # Utilization Data
+        total_minutes = []
+        for day_of_week in range(len(self.schedule)):
+            total_minutes.append(0)
+            for sched in range(len(self.schedule[day_of_week])):
+                if (sched%2) == 1:
+                    total_minutes[day_of_week] += (self.schedule[day_of_week][sched] - self.schedule[day_of_week][sched-1])*60
+                
+        self.utilization_aggregate = patient_aggregate.pipe(dataAnalysis.aggregateUtilizationAnalysis_Replication, total_minutes, self.duration_days)
+        # print(self.utilization_aggregate)
+        del patient_aggregate
 
         # Queue Data
         queue_data = []
@@ -246,23 +269,12 @@ class Nadia_Simulation:
         for i in range(len(self.daily_queue_data[self.warm_up_days:])):
             queue_data.append([self.replication, i+self.warm_up_days, self.daily_queue_data[i+self.warm_up_days]])
         queue_data = np.array(queue_data)
-
         queue_data = pd.DataFrame(data=queue_data[1:], columns=queue_data[0])
         queue_data = queue_data.pipe(dataAnalysis.preProcessing).pipe(dataAnalysis.queueDataTypesChange)
     
         self.queue_aggregate = queue_data.pipe(dataAnalysis.aggregateQueueAnalysis_Replication)
+        # print(self.queue_aggregate)
         del queue_data
-
-    # This function outputs raw results
-    def outputRaw(self, output_string):
-        with open(f"{self.directory}/{output_string}_single_patients.txt", "a") as text_file:
-            for i in self.patient_results:
-                if i.arrived >= self.warm_up_days:
-                    print(i, file=text_file)
-        with open(f"{self.directory}/{output_string}_single_queue.txt", "a") as text_file:
-            for i in range(len(self.daily_queue_data)):
-                if i >= self.warm_up_days:
-                    print(f"{self.replication}, {i+1}, {self.daily_queue_data[i]}", file=text_file)
 
 
 # This class corresponds to each patient, to ease data export
