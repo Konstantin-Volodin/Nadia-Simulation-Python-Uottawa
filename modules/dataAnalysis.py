@@ -14,7 +14,7 @@ def patientDataTypesChange(df):
 def queueDataTypesChange(df):
     df.iloc[:,0] = pd.to_numeric(df.iloc[:,0])
     df.iloc[:,1] = pd.to_numeric(df.iloc[:,1])
-    df.iloc[:,2] = pd.to_numeric(df.iloc[:,2])
+    df.iloc[:,3] = pd.to_numeric(df.iloc[:,3])
     return df
 
 def preProcessing(df):
@@ -90,54 +90,52 @@ def totalPatientDetailsAnalysis_Simulation(df_total_patient_details):
 
 # Analysis of Queue Data
 def aggregateQueueAnalysis_Replication(df):
-    df_aggregated_queue = df[['replication','queue_amount']].groupby(['replication']).agg(['mean', 'max']).reset_index().pipe(flattenMultiIndex)
-    df_aggregated_queue = df_aggregated_queue.rename(columns={'replication_':'replication'})
+    df_aggregated_queue = df[['replication','queue', 'size']].rename(columns={'size':'queue_size'}).groupby(['replication','queue']).agg(['mean', 'max']).reset_index().pipe(flattenMultiIndex)
+    df_aggregated_queue = df_aggregated_queue.rename(columns={'replication_':'replication','queue_':'queue'})
     return df_aggregated_queue
 def aggregateQueueAnalysis_Simulation(df_aggregated_queue):
-    df_aggregated_queue = df_aggregated_queue.drop(columns={'replication'}).agg({
-        'queue_amount_mean': ['mean', 'std', 'median'],
-        'queue_amount_max': ['mean', 'std', 'max']
+    df_aggregated_queue = df_aggregated_queue[['queue','queue_size_mean', 'queue_size_max']].groupby('queue').agg({
+        'queue_size_mean': ['mean', 'std', 'median'],
+        'queue_size_max': ['mean', 'std', 'max']
     })
-    # df_aggregated_queue = df_aggregated_queue.rename(columns={
-    #     'queue_amount_mean': 'number_in_queue',
-    #     'queue_amount_max': 'overall_max_in_queue'
-    # })
     return df_aggregated_queue
 
 # Analysis of Utilization Data
-def aggregateUtilizationAnalysis_Replication(df, minutes_array, total_days):
-
-    df = df[df['post_scan_status'] != '']
-    df['day'] = np.floor(df['start_service'])
-    df['day_of_week'] = df['day'].mod(7)
+def aggregateUtilizationAnalysis_Replication(df, minutes_array, capacity, repl):
 
     # Adds utilization per patient
+    df['day'] = np.floor(df['start_service'])
+    df['day_of_week'] = df['day'].mod(7)
+    df = df[df['post_scan_status'] != ''].copy()
     new_column = []
     for index, row in df.iterrows():
-        new_column.append(row['service_time'] / (minutes_array[int(row['day_of_week'])]))
-    df['utilization'] = new_column
+        new_column.append(
+            (row['service_time'] / (minutes_array[int(row['day_of_week'])])) / capacity
+        )
+    df['utilization'] = np.array(new_column).copy()
 
     # Aggregates utilization by day
-    df = df[['replication', 'day', 'utilization']].groupby(['replication','day']).agg(['sum']).reset_index().pipe(flattenMultiIndex)
-    df = df.rename(columns={'replication_':'replication','day_':'day','utilization_sum':'utilization'})
+    df = df[['replication', 'day', 'queued_to', 'utilization']].groupby(['replication', 'queued_to', 'day']).agg(['sum']).reset_index().pipe(flattenMultiIndex)
+    df = df.rename(columns={'replication_':'replication','day_':'day','utilization_sum':'utilization', 'queued_to_': 'queued_to'})
 
     # Reindex
-    new_index = [i for i in range(total_days)]
-    repl = df['replication'].unique()
-    df = df.set_index('day').reindex(new_index, fill_value=0).reset_index()
+    min_day = int(df['day'].min())
+    max_day = int(df['day'].max())
+    new_index = [i for i in range(min_day,max_day+1)]
+    df = df.set_index(['day','queued_to']).unstack(fill_value=0).reindex(new_index, fill_value=0).stack().sort_index(level=1).reset_index()
     df['day_of_week'] = df['day'].mod(7)
     df = df[df['day_of_week'] != 5]
     df = df[df['day_of_week'] != 6]
-    df = df[['replication', 'utilization']]
-    df['replication'] = repl[0]
+    df = df[['replication', 'queued_to', 'utilization']]
+    df['replication'] = repl
 
     # Aggregates utilization for replication
-    df = df.groupby(['replication']).agg(['mean', 'max']).reset_index().pipe(flattenMultiIndex) 
-    df = df.rename(columns={'replication_':'replication'})
+    df = df.groupby(['replication','queued_to']).agg(['mean', 'max']).reset_index().pipe(flattenMultiIndex) 
+    df = df.rename(columns={'replication_':'replication','queued_to_':'queued_to'})
 
     return df
 def aggregateUtilizationAnalysis_Simulation(df):
-    df = df.drop(columns={'replication'}).agg({
+    df = df.drop(columns={'replication'}).groupby(['queued_to']).agg({
         'utilization_mean': ['mean', 'std', 'median'],
         'utilization_max': ['mean', 'std', 'max']
     })

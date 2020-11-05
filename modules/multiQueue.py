@@ -17,7 +17,7 @@ class Nadia_Simulation:
         self.random_stream = np.random.RandomState()
         self.random_stream.seed(replication)
 
-        self.schedule = sim_params.schedule
+        self.schedule = sim_params.schedule.copy()
         for i in range(len(self.schedule)):
             self.schedule[i] = np.cumsum(self.schedule[i])
 
@@ -26,6 +26,7 @@ class Nadia_Simulation:
         self.initial_wait_list = sim_params.initial_wait_list
         self.arrival_rate = sim_params.arrival_rate
         self.service_time = sim_params.service_time
+        self.capacity = sim_params.ottawa_scan_capacity
         self.ottawa_scan = simpy.PriorityResource(env, sim_params.ottawa_scan_capacity)
         self.renfrew_scan = simpy.PriorityResource(env, sim_params.renfrew_scan_capacity)
         self.cornwall_scan = simpy.PriorityResource(env, sim_params.cornwall_scan_capacity)
@@ -133,9 +134,10 @@ class Nadia_Simulation:
                         patient.post_scan_status = f'returns in {self.delay_distribution[patient.scan_result]["Delay Numb"][delay_item]} days'
                         results['Delay'] = self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]
 
-                        future_date = int((np.floor(patient.arrived) + self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]))
-                        if future_date < self.duration_days and self.historic_arrival_rate_external[future_date] >= 1:
-                            self.historic_arrival_rate_external[future_date] = self.historic_arrival_rate_external[future_date] - 1
+                        # Adjusts future arrival rates, to accomodate the returning person
+                        # future_date = int((np.floor(patient.arrived) + self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]))
+                        # if future_date < self.duration_days and self.historic_arrival_rate_external[future_date] >= 1:
+                        #     self.historic_arrival_rate_external[future_date] = self.historic_arrival_rate_external[future_date] - 1
                         break
 
         return results
@@ -181,6 +183,7 @@ class Nadia_Simulation:
     def scheduledCapacity(self, day, resource):
         day_of_week = day%7
         schedule = self.schedule[day_of_week]
+        # print(schedule)
 
         for item in range(len(schedule)):
             if (item%2) == 0:
@@ -188,17 +191,19 @@ class Nadia_Simulation:
                     yield req
                     hour_of_day = self.env.now%1
                     time_until_next_stage = (schedule[item]/24) - hour_of_day
+                    # print(f"Time Now: {self.env.now}, resource taken, duration: {time_until_next_stage}")
                     yield self.env.timeout(time_until_next_stage)
             else:
                 hour_of_day = self.env.now%1
                 time_until_next_stage = (schedule[item]/24) - hour_of_day
+                # print(f"Time Now: {self.env.now}, resource not taken, duration: {time_until_next_stage}")
                 yield self.env.timeout(time_until_next_stage)        
 
     # This function deals with generating arrivals, waitlist, and simulate scheduled capacity (main simulation logic)
     def arrivalsNode(self):
         patId = 0
-        for day in range(self.duration_days):
-        # for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
+        # for day in range(self.duration_days):
+        for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
             # print(f"Simulation Day {day+1}")
 
             # Simulates Schedule for capacity
@@ -222,12 +227,20 @@ class Nadia_Simulation:
                 patId += 1
             
             # Records queue and proceeds
-            if day > 0:
-                self.daily_queue_data.append(
-                    len(self.ottawa_scan.queue)+ len(self.cornwall_scan.queue) + len(self.renfrew_scan.queue)
-                )
-            else:
-                self.daily_queue_data.append(self.initial_wait_list)
+            self.daily_queue_data.append({'replication': self.replication, 'day': day, 'queue': 'ottawa', 'size': len(self.ottawa_scan.queue)})
+            self.daily_queue_data.append({'replication': self.replication, 'day': day, 'queue': 'cornwall', 'size': len(self.cornwall_scan.queue)})
+            self.daily_queue_data.append({'replication': self.replication, 'day': day, 'queue': 'renfew', 'size': len(self.renfrew_scan.queue)})
+
+
+            # Adjusts future arrival rate based on queue
+            if self.daily_queue_data[-1]['size'] >= 100:
+                for i in range(day+1, len(self.historic_arrival_rate_external)):
+                    if self.historic_arrival_rate_external[i] >= 1:
+                        self.historic_arrival_rate_external[i] -= 1
+            else:                
+                for i in range(day+1, len(self.historic_arrival_rate_external)):
+                        self.historic_arrival_rate_external[i] += 1
+
 
             yield self.env.timeout(1)
 
@@ -247,11 +260,11 @@ class Nadia_Simulation:
         for i in range(len(self.patient_results)):
             if self.patient_results[i].arrived >= self.warm_up_days:
                 patient_data.append([
-                    self.patient_results[i+self.warm_up_days].replication, self.patient_results[i+self.warm_up_days].patient_id, 
-                    self.patient_results[i+self.warm_up_days].arrived, self.patient_results[i+self.warm_up_days].queued_hospital, 
-                    self.patient_results[i+self.warm_up_days].start_scan, self.patient_results[i+self.warm_up_days].end_scan, 
-                    self.patient_results[i+self.warm_up_days].scan_result, self.patient_results[i+self.warm_up_days].biopsy_results, 
-                    self.patient_results[i+self.warm_up_days].post_scan_status
+                    self.patient_results[i].replication, self.patient_results[i].patient_id, 
+                    self.patient_results[i].arrived, self.patient_results[i].queued_hospital, 
+                    self.patient_results[i].start_scan, self.patient_results[i].end_scan, 
+                    self.patient_results[i].scan_result, self.patient_results[i].biopsy_results, 
+                    self.patient_results[i].post_scan_status
                 ])
         patient_data = np.array(patient_data)
         patient_aggregate = pd.DataFrame(data=patient_data[1:], columns=patient_data[0])
@@ -265,8 +278,24 @@ class Nadia_Simulation:
         # print(self.time_in_system_aggregate)
         self.total_aggregate = patient_aggregate.pipe(dataAnalysis.totalPatientDetailsAnalysis_Replication)
         # print(self.total_aggregate)
+        del patient_aggregate
 
         # Utilization Data
+        utilization_data = []
+        utilization_data.append(['Replication', 'ID', 'Arrived', 'Queued To', 'Start Service', 'End Service', 'Scan Results', 'Biopsy Results', 'Post Scan Status'])
+        for i in range(len(self.patient_results)):
+            if self.patient_results[i].start_scan >= self.warm_up_days:
+                utilization_data.append([
+                    self.patient_results[i].replication, self.patient_results[i].patient_id, 
+                    self.patient_results[i].arrived, self.patient_results[i].queued_hospital, 
+                    self.patient_results[i].start_scan, self.patient_results[i].end_scan, 
+                    self.patient_results[i].scan_result, self.patient_results[i].biopsy_results, 
+                    self.patient_results[i].post_scan_status
+                ])
+        utilization_data = np.array(utilization_data)
+        utilization_data = pd.DataFrame(data=utilization_data[1:], columns=utilization_data[0])
+        utilization_data = utilization_data.pipe(dataAnalysis.preProcessing).pipe(dataAnalysis.patientDataTypesChange).pipe(dataAnalysis.basicColumnsPatientData)
+
         total_minutes = []
         for day_of_week in range(len(self.schedule)):
             total_minutes.append(0)
@@ -274,19 +303,14 @@ class Nadia_Simulation:
                 if (sched%2) == 1:
                     total_minutes[day_of_week] += (self.schedule[day_of_week][sched] - self.schedule[day_of_week][sched-1])*60
                 
-        self.utilization_aggregate = patient_aggregate.pipe(dataAnalysis.aggregateUtilizationAnalysis_Replication, total_minutes, self.duration_days)
+        self.utilization_aggregate = utilization_data.pipe(dataAnalysis.aggregateUtilizationAnalysis_Replication, total_minutes, self.capacity, self.replication)
         # print(self.utilization_aggregate)
-        del patient_aggregate
+        del utilization_data
 
         # Queue Data
-        queue_data = []
-        queue_data.insert(0, ['Replication', 'Day', 'Queue Amount'])
-        for i in range(len(self.daily_queue_data[self.warm_up_days:])):
-            queue_data.append([self.replication, i+self.warm_up_days, self.daily_queue_data[i+self.warm_up_days]])
-        queue_data = np.array(queue_data)
-        queue_data = pd.DataFrame(data=queue_data[1:], columns=queue_data[0])
+        queue_data = pd.DataFrame(self.daily_queue_data)
+        queue_data = queue_data[queue_data['day'] >= self.warm_up_days]
         queue_data = queue_data.pipe(dataAnalysis.preProcessing).pipe(dataAnalysis.queueDataTypesChange)
-    
         self.queue_aggregate = queue_data.pipe(dataAnalysis.aggregateQueueAnalysis_Replication)
         # print(self.queue_aggregate)
         del queue_data
