@@ -228,15 +228,15 @@ with open(f"{sim_params.directory}/output/raw_multi_patients.txt", "w") as text_
         for patient in repl[0]:
             print(patient, file=text_file)
 with open(f"{sim_params.directory}/output/raw_single_queue.txt", "w") as text_file:
-    print('Replication, Day, Queued To, Queue Amount', file=text_file)
+    print('Replication, Returns, Day, Queued To, Queue Amount', file=text_file)
     for repl in range(len(multi_final_results)):
         for item in multi_final_results[repl][1]:
             print(f"{item['replication']}, {item['day']}, {item['queue']}, {item['size']}", file=text_file)
-# with open(f"{sim_params.directory}/output/raw_multi_arrival.txt", "w") as text_file:
-#     print('Replication, Day, Arrival Amount', file=text_file)
-#     for repl in range(len(multi_final_results)):
-#         for day in range(len(multi_final_results[repl][7])):
-#             print(f"{repl}, {day}, {multi_final_results[repl][7][day]}", file=text_file)
+with open(f"{sim_params.directory}/output/raw_multi_arrival.txt", "w") as text_file:
+    print('Replication, Day, Arrival Amount', file=text_file)
+    for repl in range(len(multi_final_results)):
+        for day in range(len(multi_final_results[repl][7])):
+            print(f"{repl}, {day}, {multi_final_results[repl][7][day]}", file=text_file)
 
 # Replication Data
 print('Calculates Replication Details Data')
@@ -293,7 +293,7 @@ with tqdm_joblib(tqdm(desc="SINGLE QUEUE SIMULATION", total=sim_params.replicati
 
 # Output Raw
 with open(f"{sim_params.directory}/output/raw_single_patients.txt", "w") as text_file:
-    print('Replication, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
+    print('Replication, Returns, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
     for repl in single_final_results:
         for patient in repl[0]:
             print(patient, file=text_file)
@@ -302,11 +302,11 @@ with open(f"{sim_params.directory}/output/raw_single_queue.txt", "w") as text_fi
     for repl in range(len(single_final_results)):
         for item in single_final_results[repl][1]:
             print(f"{item['replication']}, {item['day']}, {item['queue']}, {item['size']}", file=text_file)
-# with open(f"{sim_params.directory}/output/raw_signle_arrival.txt", "w") as text_file:
-#     print('Replication, Day, Arrival Amount', file=text_file)
-#     for repl in range(len(single_final_results)):
-#         for day in range(len(single_final_results[repl][7])):
-#             print(f"{repl}, {day}, {single_final_results[repl][7][day]}", file=text_file)
+with open(f"{sim_params.directory}/output/raw_signle_arrival.txt", "w") as text_file:
+    print('Replication, Day, Arrival Amount', file=text_file)
+    for repl in range(len(single_final_results)):
+        for day in range(len(single_final_results[repl][7])):
+            print(f"{repl}, {day}, {single_final_results[repl][7][day]}", file=text_file)
 
 # Replication Data
 print('Calculates Replication Details Data')

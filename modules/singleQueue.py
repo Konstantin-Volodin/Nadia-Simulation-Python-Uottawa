@@ -50,10 +50,12 @@ class Nadia_Simulation:
     # The following 3 functions deal with process a patient goes through
     def patientProcess(self, pat_id):
         in_the_system = True
+        returns = 0
         while in_the_system:
 
             # Creates new Patient
             new_patient = self.createPatient(self.replication, pat_id)
+            new_patient.returns = returns
 
             # Arrived Logic
             new_patient.arrived = self.env.now
@@ -73,6 +75,9 @@ class Nadia_Simulation:
             post_scan_decisions = self.postScanProcessLogic(new_patient)
             in_the_system = post_scan_decisions['In System']
             yield self.env.timeout(post_scan_decisions['Delay'])
+
+            # Adds a return count
+            returns += 1
     def createPatient(self, replication, pat_id):
         self.patient_results.append(Patient(replication, pat_id))
         new_patient = self.patient_results[-1]
@@ -124,7 +129,6 @@ class Nadia_Simulation:
         # Generates delay amount
         if patient.biopsy_results != 'positive biopsy' and results['In System'] == True:
             if patient.scan_result == self.scan_results_names[0] or patient.scan_result == self.scan_results_names[1]:
-                patient.returns += 1
                 delay_value= self.random_stream.rand()
                 for delay_item in range(len(self.delay_distribution[patient.scan_result]['Delay Prob'])):
                     if delay_value <= self.delay_distribution[patient.scan_result]['Delay Prob'][delay_item]:
