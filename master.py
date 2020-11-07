@@ -37,12 +37,19 @@ def readParameters(string_path, sim_param):
     sim_param.renfrew_scan_capacity = int(gen_sheet.cell_value(1,7))
     sim_param.cornwall_scan_capacity = int(gen_sheet.cell_value(1,8))
 
+    
+    sim_param.result_distribution = []
     for i in range(3):
         sim_param.results_names[i] = dist_sheet.cell_value(i+1,0)
-        sim_param.result_distribution[i] = dist_sheet.cell_value(i+1,1)
-    sim_param.negative_return_probability = dist_sheet.cell_value(1,2)
-    sim_param.suspicious_need_biopsy_probablity = dist_sheet.cell_value(1,3)
-    sim_param.biopsy_positive_result_probablity = dist_sheet.cell_value(1,4)
+    for i in range(3):
+        sim_param.result_distribution.append([])
+        for j in range(3):
+            sim_param.result_distribution[i].append(dist_sheet.cell_value(i+1,j+2))
+    sim_param.negative_return_probability = dist_sheet.cell_value(1,5)
+    sim_param.suspicious_need_biopsy_probablity = dist_sheet.cell_value(1,6)
+    sim_param.biopsy_positive_result_probablity = {}
+    sim_param.biopsy_positive_result_probablity['Suspicious'] = dist_sheet.cell_value(1,8)
+    sim_param.biopsy_positive_result_probablity['Positive'] = dist_sheet.cell_value(2,8)
 
     sim_param.delay_distribution = {}
     i = 2
@@ -138,14 +145,20 @@ class simulationParameters:
         self.cornwall_scan_capacity = 1
 
         self.results_names = ['Negative', 'Sus', 'Positive']
-        self.result_distribution = [0.33, 0.33, 0.34]
+        self.result_distribution = [
+            [0.33, 0.33, 0.34],
+            [0.2, 0.3, 0.5]
+        ]
         self.negative_return_probability = 0.50
         self.delay_distribution = {
             'Negative': {'Delay Prob': [1], 'Delay Numb': [360]},
             'Sus': {'Delay Prob': [0.625, 1], 'Delay Numb': [180, 90]}
         }
         self.suspicious_need_biopsy_probablity = 0.5
-        self.biopsy_positive_result_probablity = 0.8
+        self.biopsy_positive_result_probablity = {
+            'Sus': 0.75,
+            'Positive': 0.85
+        }
         self.cancer_types = ['Stage_1', 'Stage_2', 'Stage_3', 'Stage_4']
         self.cancer_probability_distribution = [0.4, 0.3, 0.2, 0.1]
         self.cancer_growth_rate = [1, 1, 1.25, 1.5]
@@ -216,8 +229,8 @@ with open(f"{sim_params.directory}/output/raw_multi_patients.txt", "w") as text_
             print(patient, file=text_file)
 with open(f"{sim_params.directory}/output/raw_single_queue.txt", "w") as text_file:
     print('Replication, Day, Queued To, Queue Amount', file=text_file)
-    for repl in range(len(single_final_results)):
-        for item in single_final_results[repl][1]:
+    for repl in range(len(multi_final_results)):
+        for item in multi_final_results[repl][1]:
             print(f"{item['replication']}, {item['day']}, {item['queue']}, {item['size']}", file=text_file)
 # with open(f"{sim_params.directory}/output/raw_multi_arrival.txt", "w") as text_file:
 #     print('Replication, Day, Arrival Amount', file=text_file)

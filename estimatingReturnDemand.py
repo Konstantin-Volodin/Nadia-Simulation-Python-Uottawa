@@ -146,14 +146,14 @@ for i in tqdm(range(len(results))):
 
 # Results
 results = pd.DataFrame(data = results, columns=["Data"])
-print(results.mean())
+print(f"Mean: {results.mean()[0]}")
 print()
-print(results.std())
+print(f"SD: {results.std()[0]}")
 
 # Plot
 (ggplot(results, aes(x = "Data")) +
-    geom_histogram(aes(y='..density..'), binwidth = 1) + 
-    geom_density(color='red', fill='red', alpha=0.2) +
-    xlab("Number of Times a Patient Returns")
+    geom_histogram(aes(y='..density..'), binwidth = 1) +
+    # geom_density(color='red', fill='red', alpha=0.2) +
+    xlab("Number of Scans a Patient Has")
 ).draw()
 plt.show()

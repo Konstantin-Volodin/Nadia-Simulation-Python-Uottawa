@@ -29,8 +29,10 @@ class Nadia_Simulation:
         self.capacity = sim_params.ottawa_scan_capacity+sim_params.renfrew_scan_capacity+sim_params.cornwall_scan_capacity
         self.total_scan_capacity = simpy.PriorityResource(env, sim_params.ottawa_scan_capacity+sim_params.renfrew_scan_capacity+sim_params.cornwall_scan_capacity)
 
-        self.scan_results_names = sim_params.results_names
-        self.scan_results_distribution = np.cumsum(sim_params.result_distribution)
+        self.scan_results_names = sim_params.results_names        
+        self.scan_results_distribution = sim_params.result_distribution.copy()
+        for i in range(len(self.scan_results_distribution)):
+            self.scan_results_distribution[i] = np.cumsum(self.scan_results_distribution[i])
         self.negative_return_probability = sim_params.negative_return_probability
         self.delay_distribution = sim_params.delay_distribution
         self.suspicious_need_biopsy_probablity = sim_params.suspicious_need_biopsy_probablity
@@ -78,11 +80,12 @@ class Nadia_Simulation:
     def postScanProcessLogic(self, patient):
 
         results = {'Delay': 0, 'In System': True}
-        scan_res = self.random_stream.rand()
 
         # Scan Results
-        for i in range(len(self.scan_results_distribution)):
-            if scan_res <= self.scan_results_distribution[i]:
+        scan_res = self.random_stream.rand()
+        distribution_count = np.min([patient.returns, len(self.scan_results_distribution)])
+        for i in range(len(self.scan_results_distribution[distribution_count])):
+            if scan_res <= self.scan_results_distribution[distribution_count][i]:
                 patient.scan_result = self.scan_results_names[i]
                 break    
             
@@ -121,6 +124,7 @@ class Nadia_Simulation:
         # Generates delay amount
         if patient.biopsy_results != 'positive biopsy' and results['In System'] == True:
             if patient.scan_result == self.scan_results_names[0] or patient.scan_result == self.scan_results_names[1]:
+                patient.returns += 1
                 delay_value= self.random_stream.rand()
                 for delay_item in range(len(self.delay_distribution[patient.scan_result]['Delay Prob'])):
                     if delay_value <= self.delay_distribution[patient.scan_result]['Delay Prob'][delay_item]:
@@ -136,7 +140,7 @@ class Nadia_Simulation:
         return results
     def generateBiopsyResults(self, patient):
         biopsy_results = self.random_stream.rand()
-        if biopsy_results <= self.biopsy_positive_result_probablity:
+        if biopsy_results <= self.biopsy_positive_result_probablity[patient.scan_result]:
             patient.biopsy_results = 'positive biopsy'
         else:
             patient.biopsy_results = 'negative biopsy'
@@ -308,9 +312,10 @@ class Patient():
     scan_result = ''
     biopsy_results = ''
     post_scan_status = ''
+    returns = 0
 
     def __init__(self, replication, id):
         self.replication = replication
         self.patient_id = id
     def __str__(self):
-        return f"{self.replication}, {self.patient_id}, {self.arrived}, {self.queued_hospital}, {self.start_scan}, {self.end_scan}, {self.scan_result}, {self.biopsy_results}, {self.post_scan_status}"
+        return f"{self.replication}, {self.returns}, {self.patient_id}, {self.arrived}, {self.queued_hospital}, {self.start_scan}, {self.end_scan}, {self.scan_result}, {self.biopsy_results}, {self.post_scan_status}"

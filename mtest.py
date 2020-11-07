@@ -1,8 +1,4 @@
-test = [0, 0, 0, 0, 0]
+import numpy as np
 
-days = 5
 
-for i in range(days):
-    print(i)
-    for j in range(i+1, len(test)):
-        print(f'        {j}')
+print(np.min((1,2)))
