@@ -1,17 +1,20 @@
 library("zoo")
 library("tidyverse")
+library("here")
+library("sys")
 
+path <- rstudioapi::getActiveDocumentContext()$path %>% dirname() %>% dirname()
 # Import Data
-raw_multi_arrival <- read_csv("D:/Documents/Projects/Self/Nadia-Simulation-Python-Uottawa/output/raw_multi_arrival.txt")
-raw_single_arrival <- read_csv("D:/Documents/Projects/Self/Nadia-Simulation-Python-Uottawa/output/raw_signle_arrival.txt")
+raw_multi_arrival <- read_csv(paste(path,"/output/raw_multi_arrival.txt",sep=""))
+raw_single_arrival <- read_csv(paste(path,"/output/raw_signle_arrival.txt",sep=""))
 raw_multi_arrival <- raw_multi_arrival %>% rename(arrival = 'Arrival Amount') %>%
   mutate(Replication=as.factor(Replication))
 raw_single_arrival <- raw_single_arrival %>% rename(arrival = 'Arrival Amount') %>%
   mutate(Replication=as.factor(Replication))
 
 # Preprocessing
-raw_multi_queue <- read_csv("D:/Documents/Projects/Self/Nadia-Simulation-Python-Uottawa/output/raw_multi_queue.txt")
-raw_single_queue <- read_csv("D:/Documents/Projects/Self/Nadia-Simulation-Python-Uottawa/output/raw_single_queue.txt")
+raw_multi_queue <- read_csv(paste(path,"/output/raw_multi_queue.txt",sep=""))
+raw_single_queue <- read_csv(paste(path,"/output/raw_single_queue.txt",sep=""))
 raw_multi_queue <- raw_multi_queue %>% rename(queue = 'Queued To', queue_amount = 'Queue Amount') %>%
   mutate(Replication=as.factor(Replication)) %>%
   select(-c(queue)) %>% group_by(Replication, Day) %>% summarize(queue = sum(queue_amount)) %>% ungroup()
