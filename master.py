@@ -193,12 +193,12 @@ num_cores = multiprocessing.cpu_count()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 4a: Deletes Files ~~~~~~~~~~~~~~~~~~~~~
 silentremove(f"{sim_params.directory}/output/raw_multi_patients.txt")
 silentremove(f"{sim_params.directory}/output/raw_multi_queue.txt")
-# silentremove(f"{sim_params.directory}/output/raw_multi_arrival.txt")
+silentremove(f"{sim_params.directory}/output/raw_multi_arrival.txt")
 silentremove(f"{sim_params.directory}/output/replication_multi.html")
 silentremove(f"{sim_params.directory}/output/aggregate_multi.html")
 silentremove(f"{sim_params.directory}/output/raw_single_patients.txt")
 silentremove(f"{sim_params.directory}/output/raw_single_queue.txt")
-# silentremove(f"{sim_params.directory}/output/raw_signle_arrival.txt")
+silentremove(f"{sim_params.directory}/output/raw_signle_arrival.txt")
 silentremove(f"{sim_params.directory}/output/aggregate_single.html")
 silentremove(f"{sim_params.directory}/output/replication_single.html")
 
@@ -222,13 +222,13 @@ with tqdm_joblib(tqdm(desc="MULTI QUEUE SIMULATION", total=sim_params.replicatio
 
 
 # Output Raw
-with open(f"{sim_params.directory}/output/raw_multi_patients.txt", "w") as text_file:
-    print('Replication, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
-    for repl in multi_final_results:
-        for patient in repl[0]:
-            print(patient, file=text_file)
-with open(f"{sim_params.directory}/output/raw_single_queue.txt", "w") as text_file:
-    print('Replication, Returns, Day, Queued To, Queue Amount', file=text_file)
+# with open(f"{sim_params.directory}/output/raw_multi_patients.txt", "w") as text_file:
+#     print('Replication, Returns, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
+#     for repl in multi_final_results:
+#         for patient in repl[0]:
+#             print(patient, file=text_file)
+with open(f"{sim_params.directory}/output/raw_multi_queue.txt", "w") as text_file:
+    print('Replication, Day, Queued To, Queue Amount', file=text_file)
     for repl in range(len(multi_final_results)):
         for item in multi_final_results[repl][1]:
             print(f"{item['replication']}, {item['day']}, {item['queue']}, {item['size']}", file=text_file)
@@ -292,11 +292,11 @@ with tqdm_joblib(tqdm(desc="SINGLE QUEUE SIMULATION", total=sim_params.replicati
     single_final_results = Parallel(n_jobs=num_cores)(delayed(signleCoreSimulationSingleQueue)(sim_params, i) for i in range(sim_params.replications))
 
 # Output Raw
-with open(f"{sim_params.directory}/output/raw_single_patients.txt", "w") as text_file:
-    print('Replication, Returns, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
-    for repl in single_final_results:
-        for patient in repl[0]:
-            print(patient, file=text_file)
+# with open(f"{sim_params.directory}/output/raw_single_patients.txt", "w") as text_file:
+#     print('Replication, Returns, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
+#     for repl in single_final_results:
+#         for patient in repl[0]:
+#             print(patient, file=text_file)
 with open(f"{sim_params.directory}/output/raw_single_queue.txt", "w") as text_file:
     print('Replication, Day, Queued To, Queue Amount', file=text_file)
     for repl in range(len(single_final_results)):
