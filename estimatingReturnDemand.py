@@ -32,12 +32,19 @@ def readParameters(string_path, sim_param):
     sim_param.renfrew_scan_capacity = int(gen_sheet.cell_value(1,7))
     sim_param.cornwall_scan_capacity = int(gen_sheet.cell_value(1,8))
 
+    
+    sim_param.result_distribution = []
     for i in range(3):
         sim_param.results_names[i] = dist_sheet.cell_value(i+1,0)
-        sim_param.result_distribution[i] = dist_sheet.cell_value(i+1,1)
-    sim_param.negative_return_probability = dist_sheet.cell_value(1,2)
-    sim_param.suspicious_need_biopsy_probablity = dist_sheet.cell_value(1,3)
-    sim_param.biopsy_positive_result_probablity = dist_sheet.cell_value(1,4)
+    for i in range(3):
+        sim_param.result_distribution.append([])
+        for j in range(3):
+            sim_param.result_distribution[i].append(dist_sheet.cell_value(i+1,j+2))
+    sim_param.negative_return_probability = dist_sheet.cell_value(1,5)
+    sim_param.suspicious_need_biopsy_probablity = dist_sheet.cell_value(1,6)
+    sim_param.biopsy_positive_result_probablity = {}
+    sim_param.biopsy_positive_result_probablity['Suspicious'] = dist_sheet.cell_value(1,8)
+    sim_param.biopsy_positive_result_probablity['Positive'] = dist_sheet.cell_value(2,8)
 
     sim_param.delay_distribution = {}
     i = 2
@@ -109,14 +116,20 @@ class simulationParameters:
         self.cornwall_scan_capacity = 1
 
         self.results_names = ['Negative', 'Sus', 'Positive']
-        self.result_distribution = [0.33, 0.33, 0.34]
+        self.result_distribution = [
+            [0.33, 0.33, 0.34],
+            [0.2, 0.3, 0.5]
+        ]
         self.negative_return_probability = 0.50
         self.delay_distribution = {
             'Negative': {'Delay Prob': [1], 'Delay Numb': [360]},
             'Sus': {'Delay Prob': [0.625, 1], 'Delay Numb': [180, 90]}
         }
         self.suspicious_need_biopsy_probablity = 0.5
-        self.biopsy_positive_result_probablity = 0.8
+        self.biopsy_positive_result_probablity = {
+            'Sus': 0.75,
+            'Positive': 0.85
+        }
         self.cancer_types = ['Stage_1', 'Stage_2', 'Stage_3', 'Stage_4']
         self.cancer_probability_distribution = [0.4, 0.3, 0.2, 0.1]
         self.cancer_growth_rate = [1, 1, 1.25, 1.5]
@@ -127,21 +140,30 @@ sim_params = simulationParameters()
 readParameters(f"{sim_params.directory}/input/input_parameters", sim_params)
 
 # Calculates Probability a person returns
-negative_return_prob = sim_params.result_distribution[0] * sim_params.negative_return_probability
-sus_no_biopsy = sim_params.result_distribution[1] * (1 - sim_params.suspicious_need_biopsy_probablity)
-sus_negative_biopsy = sim_params.result_distribution[1] * sim_params.suspicious_need_biopsy_probablity * (1 - sim_params.biopsy_positive_result_probablity)
-pos_negative_biopsy = sim_params.result_distribution[2] * (1 - sim_params.biopsy_positive_result_probablity)
-total = negative_return_prob + sus_no_biopsy + sus_negative_biopsy + pos_negative_biopsy
+
 
 
 # Monte Carlo Simulation
 results = [0 for i in range(10000)]
 for i in tqdm(range(len(results))):
+    
+    count = 0
+
     while True:
+
+        negative_return_prob = sim_params.result_distribution[count][0] * sim_params.negative_return_probability
+        sus_no_biopsy = sim_params.result_distribution[count][1] * (1 - sim_params.suspicious_need_biopsy_probablity)
+        sus_negative_biopsy = sim_params.result_distribution[count][1] * sim_params.suspicious_need_biopsy_probablity * (1 - sim_params.biopsy_positive_result_probablity['Suspicious'])
+        pos_negative_biopsy = sim_params.result_distribution[count][2] * (1 - sim_params.biopsy_positive_result_probablity['Positive'])
+        total = negative_return_prob + sus_no_biopsy + sus_negative_biopsy + pos_negative_biopsy
+
         results[i] += 1
         random = np.random.rand()
         if random > total:
             break
+
+        count += 1
+        count = np.min([count, len(sim_params.biopsy_positive_result_probablity)-1])
 
 
 # Results

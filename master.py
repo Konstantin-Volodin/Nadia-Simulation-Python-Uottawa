@@ -43,7 +43,7 @@ def readParameters(string_path, sim_param):
         sim_param.results_names[i] = dist_sheet.cell_value(i+1,0)
     for i in range(3):
         sim_param.result_distribution.append([])
-        for j in range(3):
+        for j in range(int(dist_sheet.cell_value(0,1))):
             sim_param.result_distribution[i].append(dist_sheet.cell_value(i+1,j+2))
     sim_param.negative_return_probability = dist_sheet.cell_value(1,5)
     sim_param.suspicious_need_biopsy_probablity = dist_sheet.cell_value(1,6)

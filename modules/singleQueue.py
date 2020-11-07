@@ -88,7 +88,7 @@ class Nadia_Simulation:
 
         # Scan Results
         scan_res = self.random_stream.rand()
-        distribution_count = np.min([patient.returns, len(self.scan_results_distribution)])
+        distribution_count = np.min([patient.returns, len(self.scan_results_distribution)-1])
         for i in range(len(self.scan_results_distribution[distribution_count])):
             if scan_res <= self.scan_results_distribution[distribution_count][i]:
                 patient.scan_result = self.scan_results_names[i]
