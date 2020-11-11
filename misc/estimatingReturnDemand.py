@@ -94,7 +94,7 @@ def printParams(sim_param):
 # Placeholder Parameters
 class simulationParameters:
     def __init__(self):
-        self.directory = os.path.dirname(os.path.realpath(__file__))
+        self.directory = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         self.schedule = [
             [8,8,8],
             [8,8,8],
@@ -144,7 +144,7 @@ readParameters(f"{sim_params.directory}/input/input_parameters", sim_params)
 
 
 # Monte Carlo Simulation
-results = [0 for i in range(10000)]
+results = [0 for i in range(5000)]
 for i in tqdm(range(len(results))):
     
     count = 0
@@ -175,7 +175,6 @@ print(f"SD: {results.std()[0]}")
 # Plot
 (ggplot(results, aes(x = "Data")) +
     geom_histogram(aes(y='..density..'), binwidth = 1) +
-    # geom_density(color='red', fill='red', alpha=0.2) +
     xlab("Number of Scans a Patient Has")
 ).draw()
 plt.show()
