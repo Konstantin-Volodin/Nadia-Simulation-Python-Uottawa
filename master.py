@@ -41,15 +41,16 @@ def readParameters(string_path, sim_param):
     sim_param.result_distribution = []
     for i in range(3):
         sim_param.results_names[i] = dist_sheet.cell_value(i+1,0)
-    for i in range(3):
+    for i in range(int(dist_sheet.cell_value(0,1))):
         sim_param.result_distribution.append([])
-        for j in range(int(dist_sheet.cell_value(0,1))):
+        for j in range(3):
             sim_param.result_distribution[i].append(dist_sheet.cell_value(i+1,j+2))
     sim_param.negative_return_probability = dist_sheet.cell_value(1,5)
     sim_param.suspicious_need_biopsy_probablity = dist_sheet.cell_value(1,6)
     sim_param.biopsy_positive_result_probablity = {}
     sim_param.biopsy_positive_result_probablity['Suspicious'] = dist_sheet.cell_value(1,8)
     sim_param.biopsy_positive_result_probablity['Positive'] = dist_sheet.cell_value(2,8)
+    sim_param.negative_scans_to_leave = dist_sheet.cell_value(1,9)
 
     sim_param.delay_distribution = {}
     i = 2
@@ -88,7 +89,7 @@ def printParams(sim_param):
     print(f'Initial Wait List: {sim_param.initial_wait_list}, Service Time {sim_param.service_time*60*24}, Arrival Rate: {sim_param.arrival_rate}')
     print(f'Ottawa Capacity: {sim_param.ottawa_scan_capacity}, Renfrew Rate: {sim_param.renfrew_scan_capacity}, Cornwall: {sim_param.cornwall_scan_capacity}')
     print(f'Scan Result Names: {sim_param.results_names}, Scan Result Distribution: {sim_param.result_distribution}')
-    print(f'Negative Return Probability: {sim_param.negative_return_probability}')
+    print(f'Negative Return Probability: {sim_param.negative_return_probability}, Negative Scans to Leave {sim_params.negative_scans_to_leave}')
     print(f'Suspicious Need Bipsy Probability: {sim_param.suspicious_need_biopsy_probablity}, Positive Biopsy Probability: {sim_param.biopsy_positive_result_probablity}')
     print(f'Cancer Types: {sim_param.cancer_types}, Cancer Types Distribution: {sim_param.cancer_probability_distribution}, Cancer Types Growth: {sim_param.cancer_growth_rate}')
     print(f'Cancer Grow Interval: {sim_param.cancer_growth_interval}')
@@ -150,6 +151,7 @@ class simulationParameters:
             [0.2, 0.3, 0.5]
         ]
         self.negative_return_probability = 0.50
+        self.negative_scans_to_leave = 2
         self.delay_distribution = {
             'Negative': {'Delay Prob': [1], 'Delay Numb': [360]},
             'Sus': {'Delay Prob': [0.625, 1], 'Delay Numb': [180, 90]}
@@ -196,13 +198,16 @@ silentremove(f"{sim_params.directory}/output/raw_multi_queue.txt")
 silentremove(f"{sim_params.directory}/output/raw_multi_arrival.txt")
 silentremove(f"{sim_params.directory}/output/replication_multi.html")
 silentremove(f"{sim_params.directory}/output/aggregate_multi.html")
+silentremove(f"{sim_params.directory}/output/aggregate_multi.txt")
 silentremove(f"{sim_params.directory}/output/raw_single_patients.txt")
 silentremove(f"{sim_params.directory}/output/raw_single_queue.txt")
 silentremove(f"{sim_params.directory}/output/raw_signle_arrival.txt")
-silentremove(f"{sim_params.directory}/output/aggregate_single.html")
 silentremove(f"{sim_params.directory}/output/replication_single.html")
+silentremove(f"{sim_params.directory}/output/aggregate_single.html")
+silentremove(f"{sim_params.directory}/output/aggregate_single.txt")
 
 
+# print()
 # env = simpy.Environment()
 # simulation = multiQueue.Nadia_Simulation(env, sim_params, 0)
 # simulation.mainSimulation()
@@ -223,7 +228,7 @@ with tqdm_joblib(tqdm(desc="MULTI QUEUE SIMULATION", total=sim_params.replicatio
 
 # Output Raw
 # with open(f"{sim_params.directory}/output/raw_multi_patients.txt", "w") as text_file:
-#     print('Replication, Returns, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
+#     print('Replication, Number of Negatives Scans Before, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
 #     for repl in multi_final_results:
 #         for patient in repl[0]:
 #             print(patient, file=text_file)
@@ -259,14 +264,14 @@ for repl in range(len(multi_final_results)):
         queue_aggregate = queue_aggregate.append([multi_final_results[repl][5]])
         utilization_aggregate = utilization_aggregate.append([multi_final_results[repl][6]])
 
-with open(f"{sim_params.directory}/output/replication_multi.html", 'w') as html_file:
-   html_file.write(
-       cancer_aggregate.to_html() + '\n\n' +
-       time_in_system_aggregate.to_html() + '\n\n' +
-       total_aggregate.to_html() + '\n\n' +
-       queue_aggregate.to_html() + '\n\n' +
-       utilization_aggregate.to_html() + '\n\n' 
-   )
+# with open(f"{sim_params.directory}/output/replication_multi.html", 'w') as html_file:
+#    html_file.write(
+#        cancer_aggregate.to_html() + '\n\n' +
+#        time_in_system_aggregate.to_html() + '\n\n' +
+#        total_aggregate.to_html() + '\n\n' +
+#        queue_aggregate.to_html() + '\n\n' +
+#        utilization_aggregate.to_html() + '\n\n' 
+#    )
 del multi_final_results
 
 # Aggregate Data
@@ -284,6 +289,14 @@ with open(f"{sim_params.directory}/output/aggregate_multi.html", 'w') as html_fi
        queue_aggregate.to_html() + '\n\n' +
        utilization_aggregate.to_html() + '\n\n'
    )
+with open(f"{sim_params.directory}/output/aggregate_multi.txt", 'w') as html_file:
+   html_file.write(
+       cancer_aggregate.to_json(indent=4) + '\n\n' +
+       time_in_system_aggregate.to_json(indent=4) + '\n\n' +
+       total_aggregate.to_json(indent=4) + '\n\n' +
+       queue_aggregate.to_json(indent=4) + '\n\n' +
+       utilization_aggregate.to_json(indent=4) + '\n\n'
+   )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 6: Perform Single Queue ~~~~~~~~~~~~~~~~~~~~~
 # Simulation
@@ -293,7 +306,7 @@ with tqdm_joblib(tqdm(desc="SINGLE QUEUE SIMULATION", total=sim_params.replicati
 
 # Output Raw
 # with open(f"{sim_params.directory}/output/raw_single_patients.txt", "w") as text_file:
-#     print('Replication, Returns, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
+#     print('Replication, Number of Negatives Scans Before, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
 #     for repl in single_final_results:
 #         for patient in repl[0]:
 #             print(patient, file=text_file)
@@ -329,14 +342,14 @@ for repl in range(len(single_final_results)):
         queue_aggregate = queue_aggregate.append([single_final_results[repl][5]])
         utilization_aggregate = utilization_aggregate.append([single_final_results[repl][6]])
 
-with open(f"{sim_params.directory}/output/replication_single.html", 'w') as html_file:
-   html_file.write(
-       cancer_aggregate.to_html() + '\n\n' +
-       time_in_system_aggregate.to_html() + '\n\n' +
-       total_aggregate.to_html() + '\n\n' +
-       queue_aggregate.to_html() + '\n\n' +
-       utilization_aggregate.to_html() + '\n\n' 
-   )
+# with open(f"{sim_params.directory}/output/replication_single.html", 'w') as html_file:
+#    html_file.write(
+#        cancer_aggregate.to_html() + '\n\n' +
+#        time_in_system_aggregate.to_html() + '\n\n' +
+#        total_aggregate.to_html() + '\n\n' +
+#        queue_aggregate.to_html() + '\n\n' +
+#        utilization_aggregate.to_html() + '\n\n' 
+#    )
 del single_final_results
 
 # Aggregate Data
@@ -353,4 +366,12 @@ with open(f"{sim_params.directory}/output/aggregate_single.html", 'w') as html_f
        total_aggregate.to_html() + '\n\n' +
        queue_aggregate.to_html() + '\n\n' +
        utilization_aggregate.to_html() + '\n\n'
+   )
+with open(f"{sim_params.directory}/output/aggregate_single.txt", 'w') as html_file:
+   html_file.write(
+       cancer_aggregate.to_json(indent=4) + '\n\n' +
+       time_in_system_aggregate.to_json(indent=4) + '\n\n' +
+       total_aggregate.to_json(indent=4) + '\n\n' +
+       queue_aggregate.to_json(indent=4) + '\n\n' +
+       utilization_aggregate.to_json(indent=4) + '\n\n'
    )

@@ -151,10 +151,10 @@ for i in tqdm(range(len(results))):
 
     while True:
 
-        negative_return_prob = sim_params.result_distribution[count][0] * sim_params.negative_return_probability
-        sus_no_biopsy = sim_params.result_distribution[count][1] * (1 - sim_params.suspicious_need_biopsy_probablity)
-        sus_negative_biopsy = sim_params.result_distribution[count][1] * sim_params.suspicious_need_biopsy_probablity * (1 - sim_params.biopsy_positive_result_probablity['Suspicious'])
-        pos_negative_biopsy = sim_params.result_distribution[count][2] * (1 - sim_params.biopsy_positive_result_probablity['Positive'])
+        negative_return_prob = sim_params.result_distribution[0][0] * sim_params.negative_return_probability
+        sus_no_biopsy = sim_params.result_distribution[0][1] * (1 - sim_params.suspicious_need_biopsy_probablity)
+        sus_negative_biopsy = sim_params.result_distribution[0][1] * sim_params.suspicious_need_biopsy_probablity * (1 - sim_params.biopsy_positive_result_probablity['Suspicious'])
+        pos_negative_biopsy = sim_params.result_distribution[0][2] * (1 - sim_params.biopsy_positive_result_probablity['Positive'])
         total = negative_return_prob + sus_no_biopsy + sus_negative_biopsy + pos_negative_biopsy
 
         results[i] += 1
@@ -162,8 +162,12 @@ for i in tqdm(range(len(results))):
         if random > total:
             break
 
+        if count >= 1:
+            break
+        
         count += 1
-        count = np.min([count, len(sim_params.biopsy_positive_result_probablity)-1])
+        
+        #count = np.min([count, len(sim_params.biopsy_positive_result_probablity)-1])
 
 
 # Results

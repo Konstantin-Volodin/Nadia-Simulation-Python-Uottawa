@@ -79,7 +79,8 @@ class Nadia_Simulation:
             yield self.env.timeout(post_scan_decisions['Delay'])
 
             # Adds a return count
-            returns += 1
+            if new_patient.scan_result == self.scan_results_names[0]:
+                returns += 1
     def createPatient(self, replication, pat_id):
         self.patient_results.append(Patient(replication, pat_id))
         new_patient = self.patient_results[-1]
@@ -96,7 +97,7 @@ class Nadia_Simulation:
 
         # Scan Results
         scan_res = self.random_stream.rand()
-        distribution_count = np.min([patient.returns, len(self.scan_results_distribution)-1])
+        distribution_count = 0
         for i in range(len(self.scan_results_distribution[distribution_count])):
             if scan_res <= self.scan_results_distribution[distribution_count][i]:
                 patient.scan_result = self.scan_results_names[i]
@@ -132,6 +133,11 @@ class Nadia_Simulation:
             patient.biopsy_results = 'not performed'
         
         if patient.biopsy_results == 'positive biopsy':
+            results['In System'] = False
+
+        # Checks if patient leaves the system
+        if patient.scan_result == self.scan_results_names[0] and patient.returns == 1:
+            patient.post_scan_status = 'left the system'
             results['In System'] = False
 
         # Generates delay amount
@@ -242,13 +248,13 @@ class Nadia_Simulation:
 
 
             # Adjusts future arrival rate based on queue
-            if self.daily_queue_data[-1]['size'] >= 100:
-                for i in range(day+1, len(self.historic_arrival_rate_external)):
-                    if self.historic_arrival_rate_external[i] >= 1:
-                        self.historic_arrival_rate_external[i] -= 0.5 
-            else:                
-                for i in range(day+1, len(self.historic_arrival_rate_external)):
-                    self.historic_arrival_rate_external[i] += 0.5
+            # if self.daily_queue_data[-1]['size'] >= 100:
+            #     for i in range(day+1, len(self.historic_arrival_rate_external)):
+            #         if self.historic_arrival_rate_external[i] >= 1:
+            #             self.historic_arrival_rate_external[i] -= 0.25 
+            # else:                
+            #     for i in range(day+1, len(self.historic_arrival_rate_external)):
+            #         self.historic_arrival_rate_external[i] += 0.25
 
 
             yield self.env.timeout(1)
