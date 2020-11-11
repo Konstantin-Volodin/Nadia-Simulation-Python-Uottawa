@@ -242,13 +242,13 @@ class Nadia_Simulation:
 
 
             # Adjusts future arrival rate based on queue
-            # if self.daily_queue_data[-1]['size'] >= 100:
-            #     for i in range(day+1, len(self.historic_arrival_rate_external)):
-            #         if self.historic_arrival_rate_external[i] >= 1:
-            #             self.historic_arrival_rate_external[i] -= 0.5 
-            # else:                
-            #     for i in range(day+1, len(self.historic_arrival_rate_external)):
-            #         self.historic_arrival_rate_external[i] += 0.5
+            if self.daily_queue_data[-1]['size'] >= 100:
+                for i in range(day+1, len(self.historic_arrival_rate_external)):
+                    if self.historic_arrival_rate_external[i] >= 1:
+                        self.historic_arrival_rate_external[i] -= 0.5 
+            else:                
+                for i in range(day+1, len(self.historic_arrival_rate_external)):
+                    self.historic_arrival_rate_external[i] += 0.5
 
 
             yield self.env.timeout(1)
