@@ -1,0 +1,159 @@
+{
+    "Stage_1\/2":{
+        "count_mean":2590.4666666667,
+        "count_std":56.5970227884,
+        "count_max":2729.0,
+        "count_min":2429.0,
+        "count_median":2585.5,
+        "percentage_of_total_scans_mean":3.7870657221,
+        "percentage_of_total_scans_std":0.0821113464,
+        "percentage_of_total_scans_max":3.9751208996,
+        "percentage_of_total_scans_min":3.552364099,
+        "percentage_of_total_scans_median":3.7914240276,
+        "percentage_of_positive_biopsies_mean":70.0341510141,
+        "percentage_of_positive_biopsies_std":0.8193475851,
+        "percentage_of_positive_biopsies_max":71.1850649351,
+        "percentage_of_positive_biopsies_min":68.4997179921,
+        "percentage_of_positive_biopsies_median":69.9460455554
+    },
+    "Stage_3\/4":{
+        "count_mean":1108.2,
+        "count_std":29.7754816979,
+        "count_max":1165.0,
+        "count_min":1052.0,
+        "count_median":1113.0,
+        "percentage_of_total_scans_mean":1.6201393224,
+        "percentage_of_total_scans_std":0.0447801908,
+        "percentage_of_total_scans_max":1.7212594004,
+        "percentage_of_total_scans_min":1.5429971105,
+        "percentage_of_total_scans_median":1.6269282532,
+        "percentage_of_positive_biopsies_mean":29.9658489859,
+        "percentage_of_positive_biopsies_std":0.8193475851,
+        "percentage_of_positive_biopsies_max":31.5002820079,
+        "percentage_of_positive_biopsies_min":28.8149350649,
+        "percentage_of_positive_biopsies_median":30.0539544446
+    }
+}
+
+{
+    "in_queue_mean":{
+        "max":null,
+        "mean":1.4689864856,
+        "median":1.4733779035,
+        "std":0.0293490903
+    },
+    "in_queue_max":{
+        "max":6.910846177,
+        "mean":4.8013732481,
+        "median":null,
+        "std":0.737421416
+    },
+    "in_system_mean":{
+        "max":null,
+        "mean":1.4794059913,
+        "median":1.4838017798,
+        "std":0.0293588122
+    },
+    "in_system_max":{
+        "max":6.9337794517,
+        "mean":4.8166741067,
+        "median":null,
+        "std":0.73692904
+    },
+    "service_time_mean":{
+        "max":null,
+        "mean":15.0040882625,
+        "median":14.9994667974,
+        "std":0.0586385431
+    }
+}
+
+{
+    "id_total_unique_arrivals":{
+        "mean":43924.6666666667,
+        "std":181.8518406671,
+        "max":44278.0,
+        "min":43500.0,
+        "median":43955.0
+    },
+    "id_total_patients_returned_to_queue":{
+        "mean":68623.6666666667,
+        "std":281.1432734922,
+        "max":69308.0,
+        "min":67892.0,
+        "median":68659.0
+    },
+    "id_total_patients_served":{
+        "mean":68606.0666666667,
+        "std":281.2767606681,
+        "max":69295.0,
+        "min":67874.0,
+        "median":68625.0
+    }
+}
+
+{
+    "('queue_size_mean', 'mean')":{
+        "cornwall":26.201882716,
+        "ottawa":25.5920061728,
+        "renfew":26.4536111111
+    },
+    "('queue_size_mean', 'std')":{
+        "cornwall":1.3832224016,
+        "ottawa":1.0508844035,
+        "renfew":1.1222766034
+    },
+    "('queue_size_mean', 'median')":{
+        "cornwall":26.1305555556,
+        "ottawa":25.2814814815,
+        "renfew":26.425
+    },
+    "('queue_size_max', 'mean')":{
+        "cornwall":96.4333333333,
+        "ottawa":92.5,
+        "renfew":101.0
+    },
+    "('queue_size_max', 'std')":{
+        "cornwall":12.2437410705,
+        "ottawa":10.92845069,
+        "renfew":11.8350735324
+    },
+    "('queue_size_max', 'max')":{
+        "cornwall":130,
+        "ottawa":121,
+        "renfew":134
+    }
+}
+
+{
+    "('utilization_mean', 'mean')":{
+        "Cornwall":0.9250604177,
+        "Ottawa_Hospital":0.9230644873,
+        "Renfrew":0.9244170783
+    },
+    "('utilization_mean', 'std')":{
+        "Cornwall":0.0088148576,
+        "Ottawa_Hospital":0.0075624275,
+        "Renfrew":0.0078324587
+    },
+    "('utilization_mean', 'median')":{
+        "Cornwall":0.928080978,
+        "Ottawa_Hospital":0.9232373112,
+        "Renfrew":0.925635147
+    },
+    "('utilization_max', 'mean')":{
+        "Cornwall":1.2154833668,
+        "Ottawa_Hospital":1.2046549441,
+        "Renfrew":1.2067613377
+    },
+    "('utilization_max', 'std')":{
+        "Cornwall":0.031589486,
+        "Ottawa_Hospital":0.032204046,
+        "Renfrew":0.042938
+    },
+    "('utilization_max', 'max')":{
+        "Cornwall":1.303597934,
+        "Ottawa_Hospital":1.2917760531,
+        "Renfrew":1.3461550442
+    }
+}

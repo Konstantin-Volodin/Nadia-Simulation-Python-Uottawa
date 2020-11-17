@@ -38,6 +38,7 @@ class Nadia_Simulation:
         self.suspicious_need_biopsy_probablity = sim_params.suspicious_need_biopsy_probablity
         self.biopsy_positive_result_probablity = sim_params.biopsy_positive_result_probablity
         self.cancer_names = sim_params.cancer_types
+        self.cancer_results_distribution_non_cumulative = sim_params.cancer_probability_distribution.copy()
         self.cancer_results_distribution = np.cumsum(sim_params.cancer_probability_distribution)
         self.cancer_growth_rates = sim_params.cancer_growth_rate
         self.cancer_growth_interval = sim_params.cancer_growth_interval
@@ -160,7 +161,7 @@ class Nadia_Simulation:
             # Calculates Adjusted Probabilities
             wait_time = patient.start_scan - patient.arrived
             curr_interval = 0
-            cancer_adjusted_probs = self.cancer_results_distribution
+            cancer_adjusted_probs = self.cancer_results_distribution_non_cumulative.copy()
             while True:
                 if (curr_interval+self.cancer_growth_interval) > wait_time:
                     break
@@ -171,6 +172,7 @@ class Nadia_Simulation:
                     cancer_prob_sum = np.sum(cancer_adjusted_probs)
                     for i in range(len(cancer_adjusted_probs)):
                         cancer_adjusted_probs[i] = cancer_adjusted_probs[i] / cancer_prob_sum
+            cancer_adjusted_probs = np.cumsum(cancer_adjusted_probs)
             
             # Generates Cancer Stage
             cancer_type = self.random_stream.rand()
@@ -206,8 +208,8 @@ class Nadia_Simulation:
     # This function deals with generating arrivals, waitlist, and simulate scheduled capacity (main simulation logic)
     def arrivalsNode(self):
         patId = 0
-        for day in range(self.duration_days):
-        # for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
+        # for day in range(self.duration_days):
+        for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
             # print(f"Simulation Day {day+1}")
 
             # Simulates Schedule for capacity
