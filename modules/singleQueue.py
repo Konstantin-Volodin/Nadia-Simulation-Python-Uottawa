@@ -208,8 +208,8 @@ class Nadia_Simulation:
     # This function deals with generating arrivals, waitlist, and simulate scheduled capacity (main simulation logic)
     def arrivalsNode(self):
         patId = 0
-        # for day in range(self.duration_days):
-        for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
+        for day in range(self.duration_days):
+        # for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
             # print(f"Simulation Day {day+1}")
 
             # Simulates Schedule for capacity

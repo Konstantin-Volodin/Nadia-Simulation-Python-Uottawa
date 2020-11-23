@@ -77,7 +77,7 @@ generate_queueVSsarrival_graph <- function(scenarioFolder, scenarioName, arrival
   )
 }
 
-for (val in seq(30,40)) {
+for (val in seq(41,50)) {
   generate_queueVSsarrival_graph("BASELINE","baseline",val)
   generate_queueVSsarrival_graph("SCENARIO 1","scn1",val)
   generate_queueVSsarrival_graph("SCENARIO 2","scn2",val)
@@ -109,12 +109,12 @@ temp_fun <- function(scenarioFolder, scenarioName, queueType, arrival_rate) {
   return(percentage)
 }
 
-for (val in seq(40,40)) {
-  print(val)
-  print(
-    temp_fun("BASELINE-Test","baseline",'multi',val)
-  )
-  print(
-    temp_fun("BASELINE-Test","baseline",'single',val)
-  )
-}
+#for (val in seq(40,41)) {
+#  print(val)
+#  print(
+#    temp_fun("BASELINE-Test","baseline",'multi',val)
+#  )
+#  print(
+#    temp_fun("BASELINE-Test","baseline",'single',val)
+#  )
+#}
