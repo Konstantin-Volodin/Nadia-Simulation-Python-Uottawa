@@ -65,8 +65,8 @@ def signleCoreSimulationSingleQueue(sim_params, repl):
     return  (simulation.patient_results, simulation.daily_queue_data, simulation.cancer_aggregate, simulation.time_in_system_aggregate,
             simulation.total_aggregate, simulation.queue_aggregate, simulation.utilization_aggregate, simulation.historic_arrival_rate_external)
 pd.set_option("display.max_rows", None, "display.max_columns", None, 'display.expand_frame_repr', False)
-# num_cores = multiprocessing.cpu_count()
-num_cores = 6
+num_cores = multiprocessing.cpu_count()
+# num_cores = 6
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 3: Generate Parameters ~~~~~~~~~~~~~~~~~~~~~
 # Simulation/Main Parameters Generation
@@ -78,8 +78,8 @@ readParams.readParameters(f"{sim_params.directory}/input/input_parameters", sim_
 def runSimulation(filePath, fileNameStart, simFunction, queueData = False, rawData = False, replicationData = False):
     silentAdd(f"{sim_params.directory}/output/{filePath}")
     final_results = []
-    # with tqdm_joblib(tqdm(desc=f"{filePath} SIMULATION", total=sim_params.replications)) as progress_bar:
-    final_results = Parallel(n_jobs=num_cores)(delayed(simFunction)(sim_params, i) for i in range(sim_params.replications))
+    with tqdm_joblib(tqdm(desc=f"{filePath} SIMULATION", total=sim_params.replications)) as progress_bar:
+        final_results = Parallel(n_jobs=num_cores)(delayed(simFunction)(sim_params, i) for i in range(sim_params.replications))
 
     ### Output Raw
     if rawData:
@@ -162,46 +162,48 @@ def runSimulation(filePath, fileNameStart, simFunction, queueData = False, rawDa
 
 # silentAdd(f"{sim_params.directory}/output/BASELINE")
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 5: Running Various Scenarios ~~~~~~~~~~~~~~~~~~~~~
-for i in tqdm(range(47, 51), desc=f'Scenario Simulation'):
+for i in tqdm(range(30, 31), desc=f'Scenario Simulation'):
     sim_params.arrival_rate = i
 
     ### Baseline
     sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
     sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
-    if sim_params.arrival_rate >= 48:
-        runSimulation("BASELINE",f"baseline_arr{i}_multi", multiCoreSimulationMultiQueue, True)
-        runSimulation("BASELINE",f"baseline_arr{i}_single", signleCoreSimulationSingleQueue, True)
+    runSimulation("BASELINE-RAW",f"baseline_arr{i}_multi", multiCoreSimulationMultiQueue, True, True, True)
+    runSimulation("BASELINE-RAW",f"baseline_arr{i}_single", signleCoreSimulationSingleQueue, True, True, True)
+    # if sim_params.arrival_rate >= 48:
+    #     runSimulation("BASELINE",f"baseline_arr{i}_multi", multiCoreSimulationMultiQueue, True)
+    #     runSimulation("BASELINE",f"baseline_arr{i}_single", signleCoreSimulationSingleQueue, True)
 
-    ### Option 1
-    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
-    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
-    if sim_params.arrival_rate >= 48:
-        runSimulation("SCENARIO 1",f"scn1_arr{i}_multi", multiCoreSimulationMultiQueue, True)
-        runSimulation("SCENARIO 1",f"scn1_arr{i}_single", signleCoreSimulationSingleQueue, True)
+    # ### Option 1
+    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
+    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
+    # if sim_params.arrival_rate >= 48:
+    #     runSimulation("SCENARIO 1",f"scn1_arr{i}_multi", multiCoreSimulationMultiQueue, True)
+    #     runSimulation("SCENARIO 1",f"scn1_arr{i}_single", signleCoreSimulationSingleQueue, True)
 
-    ### Option 2
-    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
-    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
-    if sim_params.arrival_rate >= 48:
-        runSimulation("SCENARIO 2",f"scn2_arr{i}_multi", multiCoreSimulationMultiQueue, True)
-        runSimulation("SCENARIO 2",f"scn2_arr{i}_single", signleCoreSimulationSingleQueue, True)
+    # ### Option 2
+    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
+    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
+    # if sim_params.arrival_rate >= 48:
+    #     runSimulation("SCENARIO 2",f"scn2_arr{i}_multi", multiCoreSimulationMultiQueue, True)
+    #     runSimulation("SCENARIO 2",f"scn2_arr{i}_single", signleCoreSimulationSingleQueue, True)
 
-    ### Option 3
-    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
-    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
-    if sim_params.arrival_rate >= 48:
-        runSimulation("SCENARIO 3",f"scn3_arr{i}_multi", multiCoreSimulationMultiQueue, True)
-        runSimulation("SCENARIO 3",f"scn3_arr{i}_single", signleCoreSimulationSingleQueue, True)
+    # ### Option 3
+    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
+    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
+    # if sim_params.arrival_rate >= 48:
+    #     runSimulation("SCENARIO 3",f"scn3_arr{i}_multi", multiCoreSimulationMultiQueue, True)
+    #     runSimulation("SCENARIO 3",f"scn3_arr{i}_single", signleCoreSimulationSingleQueue, True)
 
-    ### Option 4
-    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
-    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
-    if sim_params.arrival_rate >= 48:
-        runSimulation("SCENARIO 4",f"scn4_arr{i}_multi", multiCoreSimulationMultiQueue, True)
-        runSimulation("SCENARIO 4",f"scn4_arr{i}_single", signleCoreSimulationSingleQueue, True)
+    # ### Option 4
+    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
+    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
+    # if sim_params.arrival_rate >= 48:
+    #     runSimulation("SCENARIO 4",f"scn4_arr{i}_multi", multiCoreSimulationMultiQueue, True)
+    #     runSimulation("SCENARIO 4",f"scn4_arr{i}_single", signleCoreSimulationSingleQueue, True)
 
-    ### Option 5
-    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
-    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
-    runSimulation("SCENARIO 5",f"scn5_arr{i}_multi", multiCoreSimulationMultiQueue, True)
-    runSimulation("SCENARIO 5",f"scn5_arr{i}_single", signleCoreSimulationSingleQueue, True)
+    # ### Option 5
+    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
+    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
+    # runSimulation("SCENARIO 5",f"scn5_arr{i}_multi", multiCoreSimulationMultiQueue, True)
+    # runSimulation("SCENARIO 5",f"scn5_arr{i}_single", signleCoreSimulationSingleQueue, True)
