@@ -1,3 +1,4 @@
+#%%
 import numpy as np
 import pandas as pd
 import xlrd
@@ -15,51 +16,29 @@ from modules import multiQueue
 from modules import singleQueue
 from modules import dataAnalysis
 from modules import readParams
-
+#%%
 sim_params = readParams.simulationParameters()
 readParams.readParameters(f"{sim_params.directory}/input/input_parameters", sim_params)
+sim_params.replications = 1
+#sim_params.initial_wait_list = 100000
+#sim_params.duration_days = 1500
+sim_params.arrival_rate = 30
 
-print('Sim Params')
-print(sim_params.cancer_probability_distribution)
-print(sim_params.cancer_growth_rate)
-print(sim_params.cancer_growth_interval)
-print()
+#%%
+env = simpy.Environment()
+simulation = singleQueue.Nadia_Simulation(env, sim_params, 1)
+simulation.mainSimulation()
+simulation.calculateAggregate()
+final_results = simulation.patient_results
 
-prob_dens = sim_params.cancer_probability_distribution.copy()
-prob_cum = np.cumsum(sim_params.cancer_probability_distribution)
-g_rate = sim_params.cancer_growth_rate
-g_interv = sim_params.cancer_growth_interval
+# simulation.calculateAggregate()
+# %%
+with open(f"{sim_params.directory}/testing40.txt", "w") as text_file:
+    print('Replication, Number of Negatives Scans Before, ID, Arrived, Queued To, Start Service, End Service, Scan Results, Biopsy Results, Post Scan Status', file=text_file)
+    for patient in final_results:
+        print(patient, file=text_file)
+    
 
-print('Initial Class Copy')
-print(prob_dens)
-print(prob_cum)
-print(g_rate)
-print(g_interv)
-print()
 
-for j in range(10):
-    cancer_adjusted_probs = prob_dens.copy()
 
-    curr_interval = 0
-    while True:
-        if (curr_interval+g_interv) > 180:
-            break
-        else:
-            curr_interval += g_interv
-            for i in range(len(cancer_adjusted_probs)):
-                cancer_adjusted_probs[i] = cancer_adjusted_probs[i] * g_rate[i]
-            cancer_prob_sum = np.sum(cancer_adjusted_probs)
-            for i in range(len(cancer_adjusted_probs)):
-                cancer_adjusted_probs[i] = cancer_adjusted_probs[i] / cancer_prob_sum
-        print(cancer_adjusted_probs)
-        
-    cancer_adjusted_probs = np.cumsum(cancer_adjusted_probs)
-
-    print()
-    print(f'{j} Class Copy')
-    print(prob_dens)
-    print(prob_cum)
-    print(g_rate)
-    print(g_interv)
-    print(cancer_adjusted_probs)
-    print()
+# %%

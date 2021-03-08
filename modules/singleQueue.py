@@ -253,22 +253,21 @@ class Nadia_Simulation:
     def calculateAggregate(self):
         
         # Patient Data
+        
         patient_data = []
-        patient_data.append(['Replication', 'ID', 'Arrived', 'Queued To', 'Start Service', 'End Service', 'Scan Results', 'Biopsy Results', 'Post Scan Status'])
-        for i in range(len(self.patient_results)):
-            if self.patient_results[i].arrived >= self.warm_up_days:
-                patient_data.append([
-                    self.patient_results[i].replication, self.patient_results[i].patient_id, 
-                    self.patient_results[i].arrived, self.patient_results[i].queued_hospital, 
-                    self.patient_results[i].start_scan, self.patient_results[i].end_scan, 
-                    self.patient_results[i].scan_result, self.patient_results[i].biopsy_results, 
-                    self.patient_results[i].post_scan_status
-                ])
-        patient_data = np.array(patient_data)
-        patient_aggregate = pd.DataFrame(data=patient_data[1:], columns=patient_data[0])
+        patient_data.append(['replication', 'numb_negative_bf', 'id', 'arrived', 'que_to', 'start', 'end', 'scan_res', 'biopsy_res', 'post_scan_res'])
+        for i in self.patient_results:
+            data = str(i).split(',')
+            data = [i.strip() for i in data]
+            patient_data.append(data)
+        patient_data = pd.DataFrame(patient_data)
+        patient_data.columns = patient_data.iloc[0]
+        patient_data = patient_data[1:]
+        
+        patient_aggregate = dataAnalysis.preProcessing(patient_data)
+        patient_aggregate = dataAnalysis.patientDataTypesChange(patient_aggregate)
+        patient_aggregate = dataAnalysis.basicColumnsPatientData(patient_aggregate, True, self.warm_up_days)
         del patient_data
-
-        patient_aggregate = patient_aggregate.pipe(dataAnalysis.preProcessing).pipe(dataAnalysis.patientDataTypesChange).pipe(dataAnalysis.basicColumnsPatientData)
 
         self.cancer_aggregate = patient_aggregate.pipe(dataAnalysis.cancerDetailsAnalysis_Replication)
         # print(self.cancer_aggregate)
@@ -279,19 +278,19 @@ class Nadia_Simulation:
 
         # Utilization Data
         utilization_data = []
-        utilization_data.append(['Replication', 'ID', 'Arrived', 'Queued To', 'Start Service', 'End Service', 'Scan Results', 'Biopsy Results', 'Post Scan Status'])
-        for i in range(len(self.patient_results)):
-            if self.patient_results[i].start_scan >= self.warm_up_days:
-                utilization_data.append([
-                    self.patient_results[i].replication, self.patient_results[i].patient_id, 
-                    self.patient_results[i].arrived, self.patient_results[i].queued_hospital, 
-                    self.patient_results[i].start_scan, self.patient_results[i].end_scan, 
-                    self.patient_results[i].scan_result, self.patient_results[i].biopsy_results, 
-                    self.patient_results[i].post_scan_status
-                ])
-        utilization_data = np.array(utilization_data)
-        utilization_data = pd.DataFrame(data=utilization_data[1:], columns=utilization_data[0])
-        utilization_data = utilization_data.pipe(dataAnalysis.preProcessing).pipe(dataAnalysis.patientDataTypesChange).pipe(dataAnalysis.basicColumnsPatientData)
+        utilization_data.append(['replication', 'numb_negative_bf', 'id', 'arrived', 'que_to', 'start', 'end', 'scan_res', 'biopsy_res', 'post_scan_res'])
+        for i in self.patient_results:
+            data = str(i).split(',')
+            data = [i.strip() for i in data]
+            utilization_data.append(data)
+        utilization_data = pd.DataFrame(utilization_data)
+        utilization_data.columns = utilization_data.iloc[0]
+        utilization_data = utilization_data[1:]
+        
+        utilization_processed = dataAnalysis.preProcessing(utilization_data)
+        utilization_processed = dataAnalysis.patientDataTypesChange(utilization_processed)
+        utilization_processed = dataAnalysis.basicColumnsPatientData(utilization_processed, False, self.warm_up_days)
+        del utilization_data
 
         total_minutes = []
         for day_of_week in range(len(self.schedule)):
@@ -300,9 +299,9 @@ class Nadia_Simulation:
                 if (sched%2) == 1:
                     total_minutes[day_of_week] += (self.schedule[day_of_week][sched] - self.schedule[day_of_week][sched-1])*60
                 
-        self.utilization_aggregate = utilization_data.pipe(dataAnalysis.aggregateUtilizationAnalysis_Replication, total_minutes, self.capacity, self.replication)
+        self.utilization_aggregate = utilization_processed.pipe(dataAnalysis.aggregateUtilizationAnalysis_Replication, total_minutes, self.capacity, self.replication)
         # print(self.utilization_aggregate)
-        del utilization_data
+        del utilization_processed
 
         # Queue Data
         queue_data = pd.DataFrame(self.daily_queue_data)
