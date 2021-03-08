@@ -34,7 +34,4 @@ time_in_system <- testing %>%
 time_in_system
 
 testing %>% distinct(id) %>% count()
-testing %>% 
-    filter(post_scan_res %in% c('returns in 90.0 days',
-                                'returns in 180.0 days',
-                                'returns in 360.0 days'))
+testing %>% count()
