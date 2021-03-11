@@ -66,7 +66,7 @@ def signleCoreSimulationSingleQueue(sim_params, repl):
             simulation.total_aggregate, simulation.queue_aggregate, simulation.utilization_aggregate, simulation.historic_arrival_rate_external)
 pd.set_option("display.max_rows", None, "display.max_columns", None, 'display.expand_frame_repr', False)
 num_cores = multiprocessing.cpu_count()
-# num_cores = 6
+num_cores = 6
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 3: Generate Parameters ~~~~~~~~~~~~~~~~~~~~~
 # Simulation/Main Parameters Generation
@@ -162,7 +162,7 @@ def runSimulation(filePath, fileNameStart, simFunction, queueData = False, rawDa
 
 # silentAdd(f"{sim_params.directory}/output/BASELINE")
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 5: Running Various Scenarios ~~~~~~~~~~~~~~~~~~~~~
-arrival_rates = [34, 40, 50]
+arrival_rates = [50]
 for i in tqdm(arrival_rates, desc=f'Scenario Simulation'):
     sim_params.arrival_rate = i
 
