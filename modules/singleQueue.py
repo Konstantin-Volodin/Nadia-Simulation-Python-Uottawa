@@ -15,7 +15,7 @@ class Nadia_Simulation:
         self.directory = sim_params.directory
         self.replication = replication
         self.random_stream = np.random.RandomState()
-        self.random_stream.seed(replication)
+        self.random_stream.seed(replication+45789)
 
         self.schedule = sim_params.schedule.copy()
         for i in range(len(self.schedule)):
@@ -129,7 +129,7 @@ class Nadia_Simulation:
             results['In System'] = False
 
         # Checks if patient leaves the system
-        if patient.scan_result == self.scan_results_names[0] and patient.returns == 1:
+        if patient.scan_result == self.scan_results_names[0] and patient.returns == 2:
             patient.post_scan_status = 'left the system'
             results['In System'] = False
 

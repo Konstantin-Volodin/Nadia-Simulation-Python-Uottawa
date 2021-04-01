@@ -15,7 +15,7 @@ class Nadia_Simulation:
         self.directory = sim_params.directory
         self.replication = replication
         self.random_stream = np.random.RandomState()
-        self.random_stream.seed(replication)
+        self.random_stream.seed((replication*28+4589)*78)
 
         self.schedule = sim_params.schedule.copy()
         for i in range(len(self.schedule)):
@@ -63,16 +63,19 @@ class Nadia_Simulation:
 
             # Arrived Logic
             new_patient.arrived = self.env.now
-            # print(f"Patient {pat_id} Arrived: {new_patient.arrived}")
+            print(f"Patient {pat_id} Arrived: {self.env.now}")
 
             # Scan Process Logic   
-            with self.selectHospitalQueue(new_patient).request(priority=2) as req:
+            selection = self.selectHospitalQueue(new_patient)
+            with selection[0].request(priority=2) as req:
                 yield req
+                print(f"Patient {pat_id} Seizes {selection[1]}: {self.env.now}")
                 new_patient.start_scan = self.env.now
-                # print(f"Patient {pat_id} Started Scan: {new_patient.start_scan}")
+                print(f"Patient {pat_id} Started Scan: {self.env.now}")
                 yield self.env.timeout(self.random_stream.exponential(self.service_time))
                 new_patient.end_scan = self.env.now
-                # print(f"Patient {pat_id} Finished Scan: {new_patient.end_scan}")
+                print(f"Patient {pat_id} Finished Scan: {self.env.now}")
+            print(f"Patient {pat_id} Released {selection[1]}: {self.env.now}")
             
             # Post Scan Logic
             post_scan_decisions = self.postScanProcessLogic(new_patient)
@@ -91,7 +94,7 @@ class Nadia_Simulation:
         switcher = [self.ottawa_scan, self.renfrew_scan, self.cornwall_scan]
         switcherName = ['Ottawa Hospital', 'Renfrew', 'Cornwall']
         patient.queued_hospital = switcherName[selection]
-        return switcher[selection]
+        return switcher[selection], switcherName[selection]
     def postScanProcessLogic(self, patient):
 
         results = {'Delay': 0, 'In System': True}
@@ -137,7 +140,7 @@ class Nadia_Simulation:
             results['In System'] = False
 
         # Checks if patient leaves the system
-        if patient.scan_result == self.scan_results_names[0] and patient.returns == 1:
+        if patient.scan_result == self.scan_results_names[0] and patient.returns == 2:
             patient.post_scan_status = 'left the system'
             results['In System'] = False
 
@@ -197,19 +200,20 @@ class Nadia_Simulation:
     # The following function simulates a schedule for resource capacity
     # It works as follows (a high priority resource takes up the capacity at times when there is no capacity)
     # It lets the previous process finish (allows overflowing) and then takes from the overflow time until the next capacity block
-    def scheduledCapacity(self, day, resource):
+    def scheduledCapacity(self, day, resource, name):
         day_of_week = day%7
         schedule = self.schedule[day_of_week]
-        # print(schedule)
 
         for item in range(len(schedule)):
             if (item%2) == 0:
                 with resource.request(priority=-100) as req:
+                    print(f'Start of schedule packing {name}: {self.env.now}')
                     yield req
                     hour_of_day = self.env.now%1
                     time_until_next_stage = (schedule[item]/24) - hour_of_day
                     # print(f"Time Now: {self.env.now}, resource taken, duration: {time_until_next_stage}")
                     yield self.env.timeout(time_until_next_stage)
+                    print(f'End of schedule packing {name}: {self.env.now}')
             else:
                 hour_of_day = self.env.now%1
                 time_until_next_stage = (schedule[item]/24) - hour_of_day
@@ -221,15 +225,16 @@ class Nadia_Simulation:
         patId = 0
         for day in range(self.duration_days):
         # for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
-            # print(f"Simulation Day {day+1}")
+            print(f'Start of day {day+1}: {self.env.now}')
 
             # Simulates Schedule for capacity
+            print('\tStart of capacity simulation')
             for cap in range(self.ottawa_scan.capacity):
-                self.env.process(self.scheduledCapacity(day, self.ottawa_scan))
+                self.env.process(self.scheduledCapacity(day, self.ottawa_scan, 'ottawa'))
             for cap in range(self.cornwall_scan.capacity):
-                self.env.process(self.scheduledCapacity(day, self.cornwall_scan))
+                self.env.process(self.scheduledCapacity(day, self.cornwall_scan, 'cornwall'))
             for cap in range(self.renfrew_scan.capacity):
-                self.env.process(self.scheduledCapacity(day, self.renfrew_scan))
+                self.env.process(self.scheduledCapacity(day, self.renfrew_scan, 'renfrew'))
 
             # Initial Waitlist
             if day == 0:
@@ -237,7 +242,7 @@ class Nadia_Simulation:
                     self.env.process(self.patientProcess(patId))
                     patId += 1
                 
-
+            print('\tStart of patient simulations for the day')
             # Daily Arrivals
             for patient in range(self.random_stream.poisson(self.historic_arrival_rate_external[day])):
                 self.env.process(self.patientProcess(patId))

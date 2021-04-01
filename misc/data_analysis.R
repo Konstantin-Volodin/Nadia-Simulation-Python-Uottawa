@@ -1,7 +1,7 @@
 library(readr)
 library(tidyverse)
 
-testing <- read_csv("C:/Volodin.K/Work Documents/Nadia-Simulation-Python-Uottawa/testing30.txt", 
+testing <- read_csv("D:/Documents/Projects/Self/Nadia-Simulation-Python-Uottawa/output/BASELINE_TEST/baseline_arr50_multi_raw_patients.txt", 
                       col_types = cols(Arrived = col_number(), 
                                        `End Service` = col_number(), ID = col_number(), 
                                        `Number of Negatives Scans Before` = col_number(), 
@@ -16,13 +16,22 @@ testing <- testing %>%
     mutate(in_system = end - arrived) %>%
     mutate(service_time = (end - start)*24*60)
 
-cancer_details <- testing %>%
-    group_by(post_scan_res) %>%
+testing_50_m <- testing
+
+cancer_details <- testing_50_m %>%
+    group_by(replication, post_scan_res) %>%
     summarize(count = n()) %>%
     filter(post_scan_res %in% c('Stage_1/2', 'Stage_3/4')) %>%
     mutate(percent_of_positive = count/sum(count)) %>%
     mutate(percent_of_total = count/testing %>% count() %>% pull(n))
-cancer_details
+cancer_details %>% ungroup() %>% #group_by(post_scan_res) %>%
+    summarize(
+        count_mean = mean(count),
+        count_std = sd(count),
+        count_max = max(count),
+        count_min = min(count),
+        count_median = median(count)
+    )
 
 time_in_system <- testing %>%
     summarize(in_queue_mean = mean(in_queue),
