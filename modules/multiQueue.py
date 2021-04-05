@@ -63,22 +63,24 @@ class Nadia_Simulation:
 
             # Arrived Logic
             new_patient.arrived = self.env.now
-            print(f"Patient {pat_id} Arrived: {self.env.now}")
+            #print(f"Patient {pat_id} Arrived: {self.env.now}")
 
             # Scan Process Logic   
             selection = self.selectHospitalQueue(new_patient)
             with selection[0].request(priority=2) as req:
                 yield req
-                print(f"Patient {pat_id} Seizes {selection[1]}: {self.env.now}")
+                #print(f"Patient {pat_id} Seizes {selection[1]}: {self.env.now}")
                 new_patient.start_scan = self.env.now
-                print(f"Patient {pat_id} Started Scan: {self.env.now}")
+                #print(f"Patient {pat_id} Started Scan: {self.env.now}")
                 yield self.env.timeout(self.random_stream.exponential(self.service_time))
                 new_patient.end_scan = self.env.now
-                print(f"Patient {pat_id} Finished Scan: {self.env.now}")
-            print(f"Patient {pat_id} Released {selection[1]}: {self.env.now}")
+                #print(f"Patient {pat_id} Finished Scan: {self.env.now}")
+            #print(f"Patient {pat_id} Released {selection[1]}: {self.env.now}")
             
             # Post Scan Logic
             post_scan_decisions = self.postScanProcessLogic(new_patient)
+            # if new_patient.scan_result == 'Positive':
+            #     print(f'{new_patient.patient_id}, {new_patient.scan_result}, {new_patient.biopsy_results}')
             in_the_system = post_scan_decisions['In System']
             yield self.env.timeout(post_scan_decisions['Delay'])
 
@@ -146,18 +148,23 @@ class Nadia_Simulation:
 
         # Generates delay amount
         if patient.biopsy_results != 'positive biopsy' and results['In System'] == True:
+            val_to_check = ""
             if patient.scan_result == self.scan_results_names[0] or patient.scan_result == self.scan_results_names[1]:
-                delay_value= self.random_stream.rand()
-                for delay_item in range(len(self.delay_distribution[patient.scan_result]['Delay Prob'])):
-                    if delay_value <= self.delay_distribution[patient.scan_result]['Delay Prob'][delay_item]:
-                        patient.post_scan_status = f'returns in {self.delay_distribution[patient.scan_result]["Delay Numb"][delay_item]} days'
-                        results['Delay'] = self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]
+                val_to_check = patient.scan_result
+            else:
+                val_to_check = "Suspicious"
+            
+            delay_value= self.random_stream.rand()
+            for delay_item in range(len(self.delay_distribution[val_to_check]['Delay Prob'])):
+                if delay_value <= self.delay_distribution[val_to_check]['Delay Prob'][delay_item]:
+                    patient.post_scan_status = f'returns in {self.delay_distribution[val_to_check]["Delay Numb"][delay_item]} days'
+                    results['Delay'] = self.delay_distribution[val_to_check]['Delay Numb'][delay_item]
 
-                        # Adjusts future arrival rates, to accomodate the returning person
-                        # future_date = int((np.floor(patient.arrived) + self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]))
-                        # if future_date < self.duration_days and self.historic_arrival_rate_external[future_date] >= 1:
-                        #     self.historic_arrival_rate_external[future_date] = self.historic_arrival_rate_external[future_date] - 1
-                        break
+                    # Adjusts future arrival rates, to accomodate the returning person
+                    # future_date = int((np.floor(patient.arrived) + self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]))
+                    # if future_date < self.duration_days and self.historic_arrival_rate_external[future_date] >= 1:
+                    #     self.historic_arrival_rate_external[future_date] = self.historic_arrival_rate_external[future_date] - 1
+                    break
 
         return results
     def generateBiopsyResults(self, patient):
@@ -166,7 +173,7 @@ class Nadia_Simulation:
             patient.biopsy_results = 'positive biopsy'
         else:
             patient.biopsy_results = 'negative biopsy'
-        
+
         if patient.biopsy_results == 'positive biopsy':
 
             # Calculates Adjusted Probabilities
@@ -207,13 +214,13 @@ class Nadia_Simulation:
         for item in range(len(schedule)):
             if (item%2) == 0:
                 with resource.request(priority=-100) as req:
-                    print(f'Start of schedule packing {name}: {self.env.now}')
+                    #print(f'Start of schedule packing {name}: {self.env.now}')
                     yield req
                     hour_of_day = self.env.now%1
                     time_until_next_stage = (schedule[item]/24) - hour_of_day
                     # print(f"Time Now: {self.env.now}, resource taken, duration: {time_until_next_stage}")
                     yield self.env.timeout(time_until_next_stage)
-                    print(f'End of schedule packing {name}: {self.env.now}')
+                    #print(f'End of schedule packing {name}: {self.env.now}')
             else:
                 hour_of_day = self.env.now%1
                 time_until_next_stage = (schedule[item]/24) - hour_of_day
@@ -225,10 +232,10 @@ class Nadia_Simulation:
         patId = 0
         for day in range(self.duration_days):
         # for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
-            print(f'Start of day {day+1}: {self.env.now}')
+            #print(f'Start of day {day+1}: {self.env.now}')
 
             # Simulates Schedule for capacity
-            print('\tStart of capacity simulation')
+            #print('\tStart of capacity simulation')
             for cap in range(self.ottawa_scan.capacity):
                 self.env.process(self.scheduledCapacity(day, self.ottawa_scan, 'ottawa'))
             for cap in range(self.cornwall_scan.capacity):
@@ -242,7 +249,7 @@ class Nadia_Simulation:
                     self.env.process(self.patientProcess(patId))
                     patId += 1
                 
-            print('\tStart of patient simulations for the day')
+            #print('\tStart of patient simulations for the day')
             # Daily Arrivals
             for patient in range(self.random_stream.poisson(self.historic_arrival_rate_external[day])):
                 self.env.process(self.patientProcess(patId))

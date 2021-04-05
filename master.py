@@ -1,3 +1,4 @@
+#%% 
 import numpy as np
 import pandas as pd
 import xlrd
@@ -160,12 +161,20 @@ def runSimulation(filePath, fileNameStart, simFunction, queueData = False, rawDa
             utilization_aggregate.to_json(indent=4)
         )
 
+# sim_params.duration_days = 2000
+# sim_params.warm_up_days = 1000
+# env = simpy.Environment()
+# simulation = multiQueue.Nadia_Simulation(env, sim_params, 0)
+# simulation.mainSimulation()
+
+
+#%%
 # silentAdd(f"{sim_params.directory}/output/BASELINE")
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 5: Running Various Scenarios ~~~~~~~~~~~~~~~~~~~~~
-arrival_rates = [34,40, 50]
+arrival_rates = [25,30,35]
 for i in tqdm(arrival_rates, desc=f'Scenario Simulation'):
     sim_params.arrival_rate = i
-    sim_params.replications = 6
+    sim_params.replications = 2
 
     ### Baseline
     sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]

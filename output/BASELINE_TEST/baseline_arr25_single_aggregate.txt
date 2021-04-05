@@ -1,0 +1,128 @@
+{
+    "Stage_1\/2":{
+        "count_mean":4073.5,
+        "count_std":31.8198051534,
+        "count_max":4096.0,
+        "count_min":4051.0,
+        "count_median":4073.5,
+        "percentage_of_total_scans_mean":5.5208105103,
+        "percentage_of_total_scans_std":0.0309566563,
+        "percentage_of_total_scans_max":5.5427001719,
+        "percentage_of_total_scans_min":5.4989208487,
+        "percentage_of_total_scans_median":5.5208105103,
+        "percentage_of_positive_biopsies_mean":70.5855754824,
+        "percentage_of_positive_biopsies_std":0.6853278303,
+        "percentage_of_positive_biopsies_max":71.0701754386,
+        "percentage_of_positive_biopsies_min":70.1009755263,
+        "percentage_of_positive_biopsies_median":70.5855754824
+    },
+    "Stage_3\/4":{
+        "count_mean":1698.0,
+        "count_std":69.2964645563,
+        "count_max":1747.0,
+        "count_min":1649.0,
+        "count_median":1698.0,
+        "percentage_of_total_scans_mean":2.3012140208,
+        "percentage_of_total_scans_std":0.0888456783,
+        "percentage_of_total_scans_max":2.3640374024,
+        "percentage_of_total_scans_min":2.2383906392,
+        "percentage_of_total_scans_median":2.3012140208,
+        "percentage_of_positive_biopsies_mean":29.4144245176,
+        "percentage_of_positive_biopsies_std":0.6853278303,
+        "percentage_of_positive_biopsies_max":29.8990244737,
+        "percentage_of_positive_biopsies_min":28.9298245614,
+        "percentage_of_positive_biopsies_median":29.4144245176
+    }
+}
+
+{
+    "in_queue_mean":{
+        "mean":1.4395633035,
+        "std":0.0237034357,
+        "median":1.4395633035,
+        "max":null
+    },
+    "in_queue_max":{
+        "mean":3.6857338569,
+        "std":0.0240905839,
+        "median":null,
+        "max":3.7027684721
+    },
+    "in_system_mean":{
+        "mean":1.4499331054,
+        "std":0.0236938603,
+        "median":1.4499331054,
+        "max":null
+    },
+    "in_system_max":{
+        "mean":3.7028396286,
+        "std":0.0129249258,
+        "median":null,
+        "max":3.7119789313
+    },
+    "service_time_mean":{
+        "mean":14.9325146553,
+        "std":0.0137885741,
+        "median":14.9325146553,
+        "max":null
+    }
+}
+
+{
+    "('id', 'total_unique_arrivals')":{
+        "mean":41583.0,
+        "std":121.6223663641,
+        "max":41669.0,
+        "min":41497.0,
+        "median":41583.0
+    },
+    "('id', 'total_patients_returned_to_queue')":{
+        "mean":73784.0,
+        "std":162.6345596729,
+        "max":73899.0,
+        "min":73669.0,
+        "median":73784.0
+    }
+}
+
+{
+    "('queue_size_mean', 'mean')":{
+        "total":86.4513888889
+    },
+    "('queue_size_mean', 'std')":{
+        "total":1.7068772024
+    },
+    "('queue_size_mean', 'median')":{
+        "total":86.4513888889
+    },
+    "('queue_size_max', 'mean')":{
+        "total":263
+    },
+    "('queue_size_max', 'std')":{
+        "total":5.6568542495
+    },
+    "('queue_size_max', 'max')":{
+        "total":267
+    }
+}
+
+{
+    "('utilization_mean', 'mean')":{
+        "Single_Queue":0.8393458565
+    },
+    "('utilization_mean', 'std')":{
+        "Single_Queue":0.0020454916
+    },
+    "('utilization_mean', 'median')":{
+        "Single_Queue":0.8393458565
+    },
+    "('utilization_max', 'mean')":{
+        "Single_Queue":1.1342546863
+    },
+    "('utilization_max', 'std')":{
+        "Single_Queue":0.0136610539
+    },
+    "('utilization_max', 'max')":{
+        "Single_Queue":1.1439145101
+    }
+}

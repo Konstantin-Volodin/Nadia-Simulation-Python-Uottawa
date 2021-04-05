@@ -109,12 +109,12 @@ temp_fun <- function(scenarioFolder, scenarioName, queueType, arrival_rate) {
   return(percentage)
 }
 
-#for (val in seq(40,41)) {
-#  print(val)
-#  print(
-#    temp_fun("BASELINE-Test","baseline",'multi',val)
-#  )
-#  print(
-#    temp_fun("BASELINE-Test","baseline",'single',val)
-#  )
-#}
+for (val in seq(40,41)) {
+ print(val)
+ print(
+   temp_fun("BASELINE-Test","baseline",'multi',val)
+ )
+ print(
+   temp_fun("BASELINE-Test","baseline",'single',val)
+ )
+}

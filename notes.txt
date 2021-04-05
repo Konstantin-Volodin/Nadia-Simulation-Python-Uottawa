@@ -1,6 +1,5 @@
 errors in code:
-	1) patients with positive scan results always get positive biopsy? - not fixed? - not sure if a problem
-	2) Number of patients served is different for different arrival rates????? WHY?????? - adjust the final numbers by a certain percentage??
+	1) Number of patients served is different for different arrival rates????? WHY?????? - adjust the final numbers by a certain percentage??
 
 not a problem:
 	1) scan results distribution
@@ -12,3 +11,4 @@ not a problem:
 fixed:
 	1) patient left after 1 scan not 2
 	2) patient biopsy rate was (1-actual)
+	3) patients with positive scan results always get positive biopsy

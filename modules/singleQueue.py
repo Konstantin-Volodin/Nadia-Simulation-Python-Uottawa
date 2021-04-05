@@ -135,18 +135,23 @@ class Nadia_Simulation:
 
         # Generates delay amount
         if patient.biopsy_results != 'positive biopsy' and results['In System'] == True:
+            val_to_check = ""
             if patient.scan_result == self.scan_results_names[0] or patient.scan_result == self.scan_results_names[1]:
-                delay_value= self.random_stream.rand()
-                for delay_item in range(len(self.delay_distribution[patient.scan_result]['Delay Prob'])):
-                    if delay_value <= self.delay_distribution[patient.scan_result]['Delay Prob'][delay_item]:
-                        patient.post_scan_status = f'returns in {self.delay_distribution[patient.scan_result]["Delay Numb"][delay_item]} days'
-                        results['Delay'] = self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]
+                val_to_check = patient.scan_result
+            else:
+                val_to_check = "Suspicious"
+            
+            delay_value= self.random_stream.rand()
+            for delay_item in range(len(self.delay_distribution[val_to_check]['Delay Prob'])):
+                if delay_value <= self.delay_distribution[val_to_check]['Delay Prob'][delay_item]:
+                    patient.post_scan_status = f'returns in {self.delay_distribution[val_to_check]["Delay Numb"][delay_item]} days'
+                    results['Delay'] = self.delay_distribution[val_to_check]['Delay Numb'][delay_item]
 
-                        # Adjusts future arrival rates, to accomodate the returning person
-                        # future_date = int((np.floor(patient.arrived) + self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]))
-                        # if future_date < self.duration_days and self.historic_arrival_rate_external[future_date] >= 1:
-                        #     self.historic_arrival_rate_external[future_date] = self.historic_arrival_rate_external[future_date] - 1
-                        break
+                    # Adjusts future arrival rates, to accomodate the returning person
+                    # future_date = int((np.floor(patient.arrived) + self.delay_distribution[patient.scan_result]['Delay Numb'][delay_item]))
+                    # if future_date < self.duration_days and self.historic_arrival_rate_external[future_date] >= 1:
+                    #     self.historic_arrival_rate_external[future_date] = self.historic_arrival_rate_external[future_date] - 1
+                    break
 
         return results
     def generateBiopsyResults(self, patient):
