@@ -1,3 +1,1 @@
-mean,sd,type
-32.3,0.546,multi
-32.5,0.473,single
+~ 25 for each

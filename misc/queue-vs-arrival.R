@@ -58,6 +58,7 @@ generate_queueVSsarrival_graph <- function(scenarioFolder, scenarioName, arrival
     geom_line(aes(y=mean_queue), color='grey60')+
     geom_line(aes(y=rollmean(mean_arrival, 180, na.pad=TRUE), color="Arrival"), size=1)+
     geom_line(aes(y=rollmean(mean_queue, 180, na.pad=TRUE), color="Queue/5"), size=1)+
+    geom_abline(xintercept = 25)
     ggtitle(paste("Arrival Rate VS Queue Size. Arrival Rate = ",arrival_rate, sep="")) + labs(x = "Simulation Day",y = "People",color = "Legend") + 
     scale_color_manual(values = colors)
   pSingle <- ggplot(raw_signle, aes(x=Day)) +
@@ -78,7 +79,7 @@ generate_queueVSsarrival_graph <- function(scenarioFolder, scenarioName, arrival
 }
 
 for (val in seq(41,50)) {
-  generate_queueVSsarrival_graph("BASELINE","baseline",val)
+  generate_queueVSsarrival_graph("BASELINE_Variable_Arrival_rate","","")
   generate_queueVSsarrival_graph("SCENARIO 1","scn1",val)
   generate_queueVSsarrival_graph("SCENARIO 2","scn2",val)
   generate_queueVSsarrival_graph("SCENARIO 3","scn3",val)

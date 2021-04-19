@@ -1,7 +1,7 @@
 library(readr)
 library(tidyverse)
 
-testing <- read_csv("C:/Volodin.K/Work Documents/Nadia-Simulation-Python-Uottawa/output/BASELINE_TEST/baseline_arr25_multi_raw_patients.txt", 
+testing <- read_csv("D:/Documents/Projects/Self/Nadia-Simulation-Python-Uottawa/output/BASELINE/baseline_arr35_single_raw_patients.txt", 
                       col_types = cols(Arrived = col_number(), 
                                        `End Service` = col_number(), ID = col_number(), 
                                        `Number of Negatives Scans Before` = col_number(), 
@@ -11,12 +11,36 @@ testing <- read_csv("C:/Volodin.K/Work Documents/Nadia-Simulation-Python-Uottawa
                                     'scan_res','biopsy_res','post_scan_res'),
                       skip=1)
 testing <- testing %>% drop_na() %>% filter(arrived >= 1080)
-testing <- testing %>% 
+testing <- testing %>%
     mutate(in_queue = start - arrived) %>%
     mutate(in_system = end - arrived) %>%
     mutate(service_time = (end - start)*24*60)
 
-testing_25_m <- testing
+testing_35_s <- testing
+
+gen_data <- function(arrival_rate, type, scenario, scenario_folder) {
+    path <- paste0("D:/Documents/Projects/Self/Nadia-Simulation-Python-Uottawa/output/",
+                   scenario_folder, "/", scenario,
+                   "_arr", arrival_rate, 
+                   "_", type, "_raw_patients.txt")
+    print(path)
+    data <- read_csv(
+        path,
+        col_types = cols(Arrived = col_number(), 
+                         `End Service` = col_number(), ID = col_number(), 
+                         `Number of Negatives Scans Before` = col_number(), 
+                         Replication = col_number(), `Start Service` = col_number()),
+        col_names = c('replication','numb_negative_bf','id',
+                      'arrived','que_to','start','end',
+                      'scan_res','biopsy_res','post_scan_res'),
+        skip=1)
+    data <- data %>% drop_na() %>% filter(arrived >= 1080)
+    return (data)
+}
+bas_25_s <- gen_data(25, 'single', 'baseline', 'BASELINE')
+bas_30_s <- gen_data(30, 'single', 'baseline', 'BASELINE')
+bas_35_s <- gen_data(35, 'single', 'baseline', 'BASELINE')
+bas_40_s <- gen_data(40, 'single', 'baseline', 'BASELINE')
 
 biopsy_details <- testing_25_m %>%
     count(scan_res, biopsy_res) 
