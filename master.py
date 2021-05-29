@@ -51,16 +51,16 @@ def tqdm_joblib(tqdm_object):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 2: Prepares Multicore Functions ~~~~~~~~~~~~~~~~~~~~~
 # Multicore Functions
-def multiCoreSimulationMultiQueue(sim_params, repl):
+def multiCoreSimulationMultiQueue(sim_params, repl, arrival_rates_data):
     env = simpy.Environment()
-    simulation = multiQueue.Nadia_Simulation(env, sim_params, repl)
+    simulation = multiQueue.Nadia_Simulation(env, sim_params, repl, arrival_rates_data)
     simulation.mainSimulation()
     simulation.calculateAggregate()
     return  (simulation.patient_results, simulation.daily_queue_data, simulation.cancer_aggregate, simulation.time_in_system_aggregate, 
             simulation.total_aggregate, simulation.queue_aggregate, simulation.utilization_aggregate, simulation.historic_arrival_rate_external)
-def signleCoreSimulationSingleQueue(sim_params, repl):
+def signleCoreSimulationSingleQueue(sim_params, repl, arrival_rates_data):
     env = simpy.Environment()
-    simulation = singleQueue.Nadia_Simulation(env, sim_params, repl)
+    simulation = singleQueue.Nadia_Simulation(env, sim_params, repl, arrival_rates_data)
     simulation.mainSimulation()
     simulation.calculateAggregate()
     return  (simulation.patient_results, simulation.daily_queue_data, simulation.cancer_aggregate, simulation.time_in_system_aggregate,
@@ -76,11 +76,12 @@ readParams.readParameters(f"{sim_params.directory}/input/input_parameters", sim_
 #readParams.printParams(sim_params)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 4: Main Multicore Function ~~~~~~~~~~~~~~~~~~~~~
-def runSimulation(filePath, fileNameStart, simFunction, queueData = False, rawData = False, replicationData = False):
+def runSimulation(filePath, fileNameStart, simFunction, arrival_rates_data, queueData = False, rawData = False, replicationData = False):
     silentAdd(f"{sim_params.directory}/output/{filePath}")
     final_results = []
     with tqdm_joblib(tqdm(desc=f"{filePath} SIMULATION", total=sim_params.replications)) as progress_bar:
-        final_results = Parallel(n_jobs=num_cores)(delayed(simFunction)(sim_params, i) for i in range(sim_params.replications))
+    # final_results.append(signleCoreSimulationSingleQueue(sim_params, 0))
+        final_results = Parallel(n_jobs=num_cores)(delayed(simFunction)(sim_params, i, arrival_rates_data) for i in range(sim_params.replications))
 
     ### Output Raw
     if rawData:
@@ -163,58 +164,84 @@ def runSimulation(filePath, fileNameStart, simFunction, queueData = False, rawDa
 
 # sim_params.duration_days = 2000
 # sim_params.warm_up_days = 1000
-# env = simpy.Environment()
-# simulation = multiQueue.Nadia_Simulation(env, sim_params, 0)
-# simulation.mainSimulation()
 
 
 #%%
 # silentAdd(f"{sim_params.directory}/output/BASELINE")
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Part 5: Running Various Scenarios ~~~~~~~~~~~~~~~~~~~~~
-arrival_rates = [40]
+arrival_rates = [25, 27, 30, 35]
 for i in tqdm(arrival_rates, desc=f'Scenario Simulation'):
     sim_params.arrival_rate = i
-    # sim_params.replications = 2
+
+    np.random.seed(100)
+    arrival_rates_data_mm3 = []
+    arrival_rates_data_mm1 = []
+    for repl in range(sim_params.replications):
+        arrival_rates_data_mm3.append([])
+        arrival_rates_data_mm1.append([])
+
+        for day in range(sim_params.duration_days):
+            arrival_rates_data_mm3[repl].append(np.random.poisson(sim_params.arrival_rate))
+            arrival_rates_data_mm1[repl].append(int(round(arrival_rates_data_mm3[repl][day]/3, 0)))
+
 
     ### Baseline
     sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
     sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
-    # if sim_params.arrival_rate >= 40:
-    # runSimulation("BASELINE",f"baseline_arr{i}_multi", multiCoreSimulationMultiQueue, True,True,True)
-    runSimulation("BASELINE",f"baseline_arr{i}_single", signleCoreSimulationSingleQueue, True,True,True)
+    runSimulation("BASELINE",f"base_{sim_params.arrival_rate}_mm3", signleCoreSimulationSingleQueue, arrival_rates_data_mm3)
+    sim_params.cornwall_scan_capacity = 0
+    sim_params.renfrew_scan_capacity = 0
+    runSimulation("BASELINE",f"base_{sim_params.arrival_rate}_mm1", signleCoreSimulationSingleQueue, arrival_rates_data_mm1)
 
     ### Option 1
-    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
-    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
-    # # # if sim_params.arrival_rate >= 48:
-    # if sim_params.arrival_rate >= 40:
-    #     runSimulation("SCENARIO 1",f"scn1_arr{i}_multi", multiCoreSimulationMultiQueue, True,True,True)
-    #     runSimulation("SCENARIO 1",f"scn1_arr{i}_single", signleCoreSimulationSingleQueue, True,True,True)
+    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
+    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
+    sim_params.cornwall_scan_capacity = 1
+    sim_params.renfrew_scan_capacity = 1
+    runSimulation("SCENARIO 1",f"scn1_{sim_params.arrival_rate}_mm3", signleCoreSimulationSingleQueue, arrival_rates_data_mm3)
+    sim_params.cornwall_scan_capacity = 0
+    sim_params.renfrew_scan_capacity = 0
+    runSimulation("SCENARIO 1",f"scn1_{sim_params.arrival_rate}_mm1", signleCoreSimulationSingleQueue, arrival_rates_data_mm1)
 
-    # # ### Option 2
-    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
-    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
-    # # # if sim_params.arrival_rate >= 48:
-    # if sim_params.arrival_rate >= 40:
-    #     runSimulation("SCENARIO 2",f"scn2_arr{i}_multi", multiCoreSimulationMultiQueue, True,True,True)
-    #     runSimulation("SCENARIO 2",f"scn2_arr{i}_single", signleCoreSimulationSingleQueue, True,True,True)
+    ### Option 2
+    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
+    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
+    sim_params.cornwall_scan_capacity = 1
+    sim_params.renfrew_scan_capacity = 1
+    runSimulation("SCENARIO 2",f"scn2_{sim_params.arrival_rate}_mm3", signleCoreSimulationSingleQueue, arrival_rates_data_mm3)
+    sim_params.cornwall_scan_capacity = 0
+    sim_params.renfrew_scan_capacity = 0
+    runSimulation("SCENARIO 2",f"scn2_{sim_params.arrival_rate}_mm1", signleCoreSimulationSingleQueue, arrival_rates_data_mm1)
 
-    # # ### Option 3
-    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
-    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
-    # # # if sim_params.arrival_rate >= 48:
-    # runSimulation("SCENARIO 3",f"scn3_arr{i}_multi", multiCoreSimulationMultiQueue, True,True,True)
-    # runSimulation("SCENARIO 3",f"scn3_arr{i}_single", signleCoreSimulationSingleQueue, True,True,True)
+    ### Option 3
+    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*12]
+    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
+    sim_params.cornwall_scan_capacity = 1
+    sim_params.renfrew_scan_capacity = 1
+    runSimulation("SCENARIO 3",f"scn3_{sim_params.arrival_rate}_mm3", signleCoreSimulationSingleQueue, arrival_rates_data_mm3)
+    sim_params.cornwall_scan_capacity = 0
+    sim_params.renfrew_scan_capacity = 0
+    runSimulation("SCENARIO 3",f"scn3_{sim_params.arrival_rate}_mm1", signleCoreSimulationSingleQueue, arrival_rates_data_mm1)
 
-    # # ### Option 4
-    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
-    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
-    # # # if sim_params.arrival_rate >= 48:
-    # runSimulation("SCENARIO 4",f"scn4_arr{i}_multi", multiCoreSimulationMultiQueue, True,True,True)
-    # runSimulation("SCENARIO 4",f"scn4_arr{i}_single", signleCoreSimulationSingleQueue, True,True,True)
+    ### Option 4
+    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
+    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
+    sim_params.cornwall_scan_capacity = 1
+    sim_params.renfrew_scan_capacity = 1
+    runSimulation("SCENARIO 4",f"scn4_{sim_params.arrival_rate}_mm3", signleCoreSimulationSingleQueue, arrival_rates_data_mm3)
+    sim_params.cornwall_scan_capacity = 0
+    sim_params.renfrew_scan_capacity = 0
+    runSimulation("SCENARIO 4",f"scn4_{sim_params.arrival_rate}_mm1", signleCoreSimulationSingleQueue, arrival_rates_data_mm1)
 
-    # # ### Option 5
-    # sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
-    # sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
-    # runSimulation("SCENARIO 5",f"scn5_arr{i}_multi", multiCoreSimulationMultiQueue, True,True,True)
-    # runSimulation("SCENARIO 5",f"scn5_arr{i}_single", signleCoreSimulationSingleQueue, True,True,True)
+    ### Option 5
+    sim_params.delay_distribution['Negative']['Delay Numb'] = [30*24]
+    sim_params.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
+    sim_params.cornwall_scan_capacity = 1
+    sim_params.renfrew_scan_capacity = 1
+    runSimulation("SCENARIO 5",f"scn5_{sim_params.arrival_rate}_mm3", signleCoreSimulationSingleQueue, arrival_rates_data_mm3)
+    sim_params.cornwall_scan_capacity = 0
+    sim_params.renfrew_scan_capacity = 0
+    runSimulation("SCENARIO 5",f"scn5_{sim_params.arrival_rate}_mm1", signleCoreSimulationSingleQueue, arrival_rates_data_mm1)
+# %%
+
+# %%

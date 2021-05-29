@@ -10,7 +10,7 @@ from modules import dataAnalysis
 class Nadia_Simulation:
 
     # Initializes parameters
-    def __init__(self, env, sim_params, replication):
+    def __init__(self, env, sim_params, replication, arrival_rates_data):
         self.env = env
         self.directory = sim_params.directory
         self.replication = replication
@@ -46,6 +46,8 @@ class Nadia_Simulation:
         self.patient_results = []
         self.daily_queue_data = []
         self.historic_arrival_rate_external = [self.arrival_rate for i in range(self.duration_days)]
+
+        self.arrivals_data = arrival_rates_data
 
 
     # The following 3 functions deal with process a patient goes through
@@ -229,7 +231,9 @@ class Nadia_Simulation:
                 
 
             # Daily Arrivals
-            for patient in range(self.random_stream.poisson(self.historic_arrival_rate_external[day])):
+            arrivals = self.arrivals_data[self.replication][day]
+            for patient in range(arrivals):
+            # for patient in range(self.random_stream.poisson(self.historic_arrival_rate_external[day])):
                 self.env.process(self.patientProcess(patId))
                 patId += 1
             
@@ -238,7 +242,7 @@ class Nadia_Simulation:
 
 
             # Adjusts future arrival rate based on queue
-            # if self.daily_queue_data[-1]['size'] >= 300:
+            # if self.daily_queue_data[-1]['size'] >= 1000:
             #     for i in range(day+1, len(self.historic_arrival_rate_external)):
             #         if self.historic_arrival_rate_external[i] >= 1:
             #             self.historic_arrival_rate_external[i] -= 0.25
