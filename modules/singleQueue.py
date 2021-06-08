@@ -79,7 +79,7 @@ class Nadia_Simulation:
                     patient.cancer_stage = self.generate_cancer_type(patient)
 
             # Leave the system check
-            print(patient)
+            # print(patient)
             if patient.return_delay == None:
                 break 
             else: 
@@ -165,6 +165,7 @@ class Nadia_Simulation:
             total = np.sum(cancer_distribution)
             for i in range(len(cancer_distribution)):
                 cancer_distribution[i] = cancer_distribution[i]/total
+            counter += 1
         cancer_distribution = np.cumsum(cancer_distribution)
 
         # Generates Cancer Type
@@ -211,7 +212,7 @@ class Nadia_Simulation:
 
             # Generates Daily Arrivals
             arrivals = np.random.poisson(3)
-            for i in range(12):
+            for i in range(20):
                 self.env.process(self.patient_process(patId))
                 patId += 1
 

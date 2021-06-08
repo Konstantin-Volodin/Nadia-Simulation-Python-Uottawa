@@ -32,7 +32,8 @@ data %>% distinct(return_delay)
 
 # Scan Distribution
 data %>% count(scan_result) %>% drop_na() %>% mutate(p = n/sum(n)*100)
-
+# Cancer Distribution
+data %>% count(cancer_stage) %>% drop_na() %>% mutate(p = n/sum(n)*100)
 
 # Negative Scan Checking
 data %>% filter(scan_result == "Negative") %>% distinct(post_scan_result)
