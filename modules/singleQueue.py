@@ -21,12 +21,22 @@ class Nadia_Simulation:
         self.input_data = deepcopy(sim_params)
         self.replication = replication
 
+        # random streams
+        self.rand_arrivals = np.random.RandomState()
+        self.rand_other = np.random.RandomState()
+        self.rand_arrivals.seed(replication)
+        self.rand_other.seed(replication)
+
         # Resource
         self.scan_resource = simpy.PriorityResource(env, self.input_data.arrParams.capacity)
 
         # Results
         self.patient_results = []
-        self.queue_data = []
+        self.arr_queue_results = {
+            'day': [],
+            'initial_arrival': [],
+            'end_queue': []
+        }
 
 
     # The following 3 functions deal with process a patient goes through
@@ -46,7 +56,8 @@ class Nadia_Simulation:
                 # Scan Process
                 yield resource
                 patient.start_scan = round(self.env.now,4)
-                yield self.env.timeout(0.01)
+                timeout_dur = self.rand_other.exponential(self.input_data.arrParams.service_time)
+                yield self.env.timeout(timeout_dur)
                 patient.end_scan = round(self.env.now,4)
 
             # Scan Results
@@ -90,7 +101,7 @@ class Nadia_Simulation:
     # Intermediate functions in patient process
     def generate_scan_result(self): 
         scan_result = ""
-        random_numb = np.random.random()
+        random_numb = self.rand_other.random()
 
         for i in range(len(self.input_data.scanResParams.result_distribution)):
             if random_numb <= self.input_data.scanResParams.result_distribution[i]:
@@ -100,7 +111,7 @@ class Nadia_Simulation:
         return scan_result
     def generate_bulk_result(self, patient):
         post_scan_result = ""
-        random_numb = np.random.random()
+        random_numb = self.rand_other.random()
 
         if patient.prev_returns >= 2:
             post_scan_result = "Left System"
@@ -117,7 +128,7 @@ class Nadia_Simulation:
             delay_distribution = self.input_data.scanResParams.delay_distribution['Suspicious']
         else:
             delay_distribution = self.input_data.scanResParams.delay_distribution[patient.scan_result]
-        random_numb = np.random.random()
+        random_numb = self.rand_other.random()
 
         for i in range(len(delay_distribution['Delay Prob'])):
             if random_numb <= delay_distribution['Delay Prob'][i]:
@@ -127,7 +138,7 @@ class Nadia_Simulation:
         return delay_result
     def generate_biopsy_need(self, patient):
         biopsy_need_result = ""
-        random_numb = np.random.random()
+        random_numb = self.rand_other.random()
 
         if random_numb <= self.input_data.scanResParams.suspicious_biopsy:
             biopsy_need_result = "Needs Biopsy"
@@ -138,7 +149,7 @@ class Nadia_Simulation:
     def generate_biopsy_result(self, patient):
         biopsy_result = ""
         biopsy_distribution = self.input_data.biopsyResParams.cancer_chance[patient.scan_result]
-        random_numb = np.random.random()
+        random_numb = self.rand_other.random()
 
         if random_numb <= biopsy_distribution:
             biopsy_result = "Positive Biopsy"
@@ -152,7 +163,7 @@ class Nadia_Simulation:
         cancer_distribution = deepcopy(self.input_data.biopsyResParams.cancer_staging)
         cancer_growth = self.input_data.biopsyResParams.growth_rate
         growth_interval = self.input_data.biopsyResParams.growth_interval
-        random_numb = np.random.random()
+        random_numb = self.rand_other.random()
 
         # Converts to density percentage
         cancer_distribution[1:] -= cancer_distribution[:-1].copy()
@@ -203,55 +214,56 @@ class Nadia_Simulation:
     def arrivals_node(self):
         
         patId = 0
+        adjust_counter = 0
+        adjust_mem = 'less'
+        adjust_dur = 5
+        adjust_size = 1000
 
-        for day in range(self.input_data.simParams.duration):
-            print(f'DAY {day+1}')
+        for day in trange(self.input_data.simParams.duration):
+            # print(f'DAY {day+1}')
             # Simulates busy Intervals
             for cap in range(self.input_data.arrParams.capacity):
                 self.env.process(self.scheduled_capacity(day, self.scan_resource))
 
             # Generates Daily Arrivals
-            arrivals = np.random.poisson(3)
-            for i in range(20):
+            arrivals = self.rand_arrivals.poisson(self.input_data.arrParams.arrival_rate)
+            for i in range(arrivals):
                 self.env.process(self.patient_process(patId))
                 patId += 1
 
             # Finishes up a day in the simulation
             yield self.env.timeout(1)
 
-        # patId = 0
-        # for day in range(self.duration_days):
-        # # for day in tqdm(range(self.duration_days), desc=f'Replication {self.replication+1}'):
-        #     # print(f"Simulation Day {day+1}")
+            # Saves Arrival & Queue  Data
+            self.arr_queue_results['day'].append(day+1)
+            self.arr_queue_results['initial_arrival'].append(self.input_data.arrParams.arrival_rate)
+            self.arr_queue_results['end_queue'].append(len(self.scan_resource.queue))
 
-        #     # Simulates Schedule for capacity
+            # print(f'Queue Size: {len(self.scan_resource.queue)}, mem: {adjust_mem}, counter: {adjust_counter}, old_arr: {self.input_data.arrParams.arrival_rate}', end=', ')
+            # Adjusts Arriavl rate
+            # if len(self.scan_resource.queue) >= adjust_size:
+            #     if adjust_mem == 'more':
+            #         adjust_counter += 1
+            #     else:
+            #         adjust_mem = 'more'
+            #         adjust_counter = 1
+            # else: 
+            #     if adjust_mem == 'less':
+            #         adjust_counter += 1
+            #     else:
+            #         adjust_mem = 'less'
+            #         adjust_counter = 1
 
-        #     # Initial Waitlist
-        #     if day == 0:
-        #         for wait_list_size in range(self.initial_wait_list):
-        #             self.env.process(self.patientProcess(patId))
-        #             patId += 1
-                
+            # if adjust_counter >= adjust_dur:
+            #     if adjust_mem == 'less':
+            #         self.input_data.arrParams.arrival_rate += 1
+            #         adjust_counter = 0
+            #     else:
+            #         self.input_data.arrParams.arrival_rate -= 1
+            #         if self.input_data.arrParams.arrival_rate < 0: self.input_data.arrParams.arrival_rate = 0
+            #         adjust_counter = 0
+            # # print(f'new arrival: {self.input_data.arrParams.arrival_rate}')
 
-        #     # Daily Arrivals
-        #     arrivals = self.arrivals_data[self.replication][day]
-        #     for patient in range(arrivals):
-        #     # for patient in range(self.random_stream.poisson(self.historic_arrival_rate_external[day])):
-        #         self.env.process(self.patientProcess(patId))
-        #         patId += 1
-            
-        #     # Records queue and proceeds
-        #     self.daily_queue_data.append({'replication': self.replication, 'day': day, 'queue': 'total', 'size': len(self.total_scan_capacity.queue)})
-
-
-        #     # Adjusts future arrival rate based on queue
-        #     # if self.daily_queue_data[-1]['size'] >= 1000:
-        #     #     for i in range(day+1, len(self.historic_arrival_rate_external)):
-        #     #         if self.historic_arrival_rate_external[i] >= 1:
-        #     #             self.historic_arrival_rate_external[i] -= 0.25
-        #     # else:                
-        #     #     for i in range(day+1, len(self.historic_arrival_rate_external)):
-        #     #             self.historic_arrival_rate_external[i] += 0.25
     # This function executes the simulation
     def main_simulation(self):
         self.env.process(self.arrivals_node())
@@ -261,6 +273,9 @@ class Nadia_Simulation:
     def export_data(self):
         df = pd.DataFrame([x.as_dict() for x in self.patient_results])
         self.patient_results = df
+
+        df2 = pd.DataFrame(self.arr_queue_results)
+        self.arr_queue_results = df2
 
     # This function calculates aggregate results
     def calculateAggregate(self):
