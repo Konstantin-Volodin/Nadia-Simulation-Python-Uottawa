@@ -270,10 +270,12 @@ create_report <- function(scenario_folder, scenario_name, arrival_rate, capacity
 # create_report('SCENARIO 2', 'sch2', 'arr18', 'mm3')
 # create_report('SCENARIO 2', 'sch2', 'arr25.799999999999997', 'mm3')
 # create_report('SCENARIO 2', 'sch2', 'arr30', 'mm3')
+create_report('SCENARIO 2', 'sch2', 'arr45', 'mm3')
 # 
 # create_report('SCENARIO 3', 'sch3', 'arr18', 'mm3')
 # create_report('SCENARIO 3', 'sch3', 'arr25.799999999999997', 'mm3')
 # create_report('SCENARIO 3', 'sch3', 'arr30', 'mm3')
+create_report('SCENARIO 3', 'sch3', 'arr45', 'mm3')
 # 
 # create_report('SCENARIO 4', 'sch4', 'arr18', 'mm3')
 # create_report('SCENARIO 4', 'sch4', 'arr25.799999999999997', 'mm3')
