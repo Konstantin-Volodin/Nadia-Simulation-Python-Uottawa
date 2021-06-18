@@ -39,7 +39,7 @@ readParams.readParameters(f'{input_data.directory}\\input\\input_parameters.xlsx
 #         arrival_rates_data_mm3[repl].append(np.random.poisson(sim_params.arrival_rate))
 #         arrival_rates_data_mm1[repl].append(int(round(arrival_rates_data_mm3[repl][day]/3, 0)))
 # %% Test Simulation
-arrivals = [6*3, 8.6*3, 10*3, 15*3]
+arrivals = [15*3]
 for arr in arrivals:
     input_data.arrParams.arrival_rate = arr
 
@@ -48,32 +48,32 @@ for arr in arrivals:
         input_data.arrParams.capacity = cap
         
         ### Baseline
-        input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*12]
-        input_data.scanResParams.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
-        res_pat, res_queue = run_simulation(input_data)
-        feather.write_feather(res_pat, f'{input_data.directory}\\output\\Baseline\\baseline-arr{arr}-mm{cap}-patients.feather', compression='zstd')
-        feather.write_feather(res_queue, f'{input_data.directory}\\output\\Baseline\\baseline-arr{arr}-mm{cap}-queue.feather', compression='zstd')
+        # input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*12]
+        # input_data.scanResParams.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
+        # res_pat, res_queue = run_simulation(input_data)
+        # feather.write_feather(res_pat, f'{input_data.directory}\\output\\Baseline\\baseline-arr{arr}-mm{cap}-patients.feather', compression='zstd')
+        # feather.write_feather(res_queue, f'{input_data.directory}\\output\\Baseline\\baseline-arr{arr}-mm{cap}-queue.feather', compression='zstd')
 
-        ### Option 1
-        input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*24]
-        input_data.scanResParams.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
-        res_pat, res_queue = run_simulation(input_data)
-        feather.write_feather(res_pat, f'{input_data.directory}\\output\\Scenario 1\\sch1-arr{arr}-mm{cap}-patients.feather', compression='zstd')
-        feather.write_feather(res_queue, f'{input_data.directory}\\output\\Scenario 1\\sch1-arr{arr}-mm{cap}-queue.feather', compression='zstd')
+        # ### Option 1
+        # input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*24]
+        # input_data.scanResParams.delay_distribution['Suspicious']['Delay Prob'] = [0.625, 1]
+        # res_pat, res_queue = run_simulation(input_data)
+        # feather.write_feather(res_pat, f'{input_data.directory}\\output\\Scenario 1\\sch1-arr{arr}-mm{cap}-patients.feather', compression='zstd')
+        # feather.write_feather(res_queue, f'{input_data.directory}\\output\\Scenario 1\\sch1-arr{arr}-mm{cap}-queue.feather', compression='zstd')
 
-        ### Option 2
-        input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*12]
-        input_data.scanResParams.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
-        res_pat, res_queue = run_simulation(input_data)
-        feather.write_feather(res_pat, f'{input_data.directory}\\output\\Scenario 2\\sch2-arr{arr}-mm{cap}-patients.feather', compression='zstd')
-        feather.write_feather(res_queue, f'{input_data.directory}\\output\\Scenario 2\\sch2-arr{arr}-mm{cap}-queue.feather', compression='zstd')
+        # ### Option 2
+        # input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*12]
+        # input_data.scanResParams.delay_distribution['Suspicious']['Delay Prob'] = [1, 1]
+        # res_pat, res_queue = run_simulation(input_data)
+        # feather.write_feather(res_pat, f'{input_data.directory}\\output\\Scenario 2\\sch2-arr{arr}-mm{cap}-patients.feather', compression='zstd')
+        # feather.write_feather(res_queue, f'{input_data.directory}\\output\\Scenario 2\\sch2-arr{arr}-mm{cap}-queue.feather', compression='zstd')
 
-        ### Option 3
-        input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*12]
-        input_data.scanResParams.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
-        res_pat, res_queue = run_simulation(input_data)
-        feather.write_feather(res_pat, f'{input_data.directory}\\output\\Scenario 3\\sch3-arr{arr}-mm{cap}-patients.feather', compression='zstd')
-        feather.write_feather(res_queue, f'{input_data.directory}\\output\\Scenario 3\\sch3-arr{arr}-mm{cap}-queue.feather', compression='zstd')
+        # ### Option 3
+        # input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*12]
+        # input_data.scanResParams.delay_distribution['Suspicious']['Delay Prob'] = [0, 1]
+        # res_pat, res_queue = run_simulation(input_data)
+        # feather.write_feather(res_pat, f'{input_data.directory}\\output\\Scenario 3\\sch3-arr{arr}-mm{cap}-patients.feather', compression='zstd')
+        # feather.write_feather(res_queue, f'{input_data.directory}\\output\\Scenario 3\\sch3-arr{arr}-mm{cap}-queue.feather', compression='zstd')
 
         ### Option 4
         input_data.scanResParams.delay_distribution['Negative']['Delay Numb'] = [30*24]
