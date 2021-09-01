@@ -219,7 +219,7 @@ class Nadia_Simulation:
         adjust_dur = 5
         adjust_size = 1000
 
-        for day in trange(self.input_data.simParams.duration):
+        for day in range(self.input_data.simParams.duration):
             # print(f'DAY {day+1}')
             # Simulates busy Intervals
             for cap in range(self.input_data.arrParams.capacity):

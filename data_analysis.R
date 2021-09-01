@@ -257,32 +257,32 @@ create_report <- function(scenario_folder, scenario_name, arrival_rate, capacity
   generate_outputs(pat_data, queue_data, warm_up_days, reference)
 }
 
-# create_report('Baseline', 'baseline', 'arr18', 'mm3')
-# create_report('Baseline', 'baseline', 'arr25.799999999999997', 'mm3')
-# create_report('Baseline', 'baseline', 'arr30', 'mm3')
-# create_report('Baseline', 'baseline', 'arr45', 'mm3')
-# 
-# create_report('SCENARIO 1', 'sch1', 'arr18', 'mm3')
-# create_report('SCENARIO 1', 'sch1', 'arr25.799999999999997', 'mm3')
-# create_report('SCENARIO 1', 'sch1', 'arr30', 'mm3')
-# create_report('SCENARIO 1', 'sch1', 'arr45', 'mm3')
-# 
-# create_report('SCENARIO 2', 'sch2', 'arr18', 'mm3')
-# create_report('SCENARIO 2', 'sch2', 'arr25.799999999999997', 'mm3')
-# create_report('SCENARIO 2', 'sch2', 'arr30', 'mm3')
-create_report('SCENARIO 2', 'sch2', 'arr45', 'mm3')
-# 
-# create_report('SCENARIO 3', 'sch3', 'arr18', 'mm3')
-# create_report('SCENARIO 3', 'sch3', 'arr25.799999999999997', 'mm3')
-# create_report('SCENARIO 3', 'sch3', 'arr30', 'mm3')
-create_report('SCENARIO 3', 'sch3', 'arr45', 'mm3')
-# 
-# create_report('SCENARIO 4', 'sch4', 'arr18', 'mm3')
-# create_report('SCENARIO 4', 'sch4', 'arr25.799999999999997', 'mm3')
-# create_report('SCENARIO 4', 'sch4', 'arr30', 'mm3')
-create_report('SCENARIO 4', 'sch4', 'arr45', 'mm3')
-# 
-# create_report('SCENARIO 5', 'sch5', 'arr18', 'mm3')
-# create_report('SCENARIO 5', 'sch5', 'arr25.799999999999997', 'mm3')
-# create_report('SCENARIO 5', 'sch5', 'arr30', 'mm3')
-create_report('SCENARIO 5', 'sch5', 'arr45', 'mm3')
+create_report('Baseline', 'baseline', 'arr11', 'mm1')
+create_report('Baseline', 'baseline', 'arr12', 'mm1')
+create_report('Baseline', 'baseline', 'arr31', 'mm3')
+create_report('Baseline', 'baseline', 'arr32', 'mm3')
+
+create_report('SCENARIO 1', 'sch1', 'arr11', 'mm1')
+create_report('SCENARIO 1', 'sch1', 'arr12', 'mm1')
+create_report('SCENARIO 1', 'sch1', 'arr31', 'mm3')
+create_report('SCENARIO 1', 'sch1', 'arr32', 'mm3')
+
+create_report('SCENARIO 2', 'sch2', 'arr11', 'mm1')
+create_report('SCENARIO 2', 'sch2', 'arr12', 'mm1')
+create_report('SCENARIO 2', 'sch2', 'arr31', 'mm3')
+create_report('SCENARIO 2', 'sch2', 'arr32', 'mm3')
+
+create_report('SCENARIO 3', 'sch3', 'arr11', 'mm1')
+create_report('SCENARIO 3', 'sch3', 'arr12', 'mm1')
+create_report('SCENARIO 3', 'sch3', 'arr31', 'mm3')
+create_report('SCENARIO 3', 'sch3', 'arr32', 'mm3')
+
+create_report('SCENARIO 4', 'sch4', 'arr11', 'mm1')
+create_report('SCENARIO 4', 'sch4', 'arr12', 'mm1')
+create_report('SCENARIO 4', 'sch4', 'arr31', 'mm3')
+create_report('SCENARIO 4', 'sch4', 'arr32', 'mm3')
+
+create_report('SCENARIO 5', 'sch5', 'arr11', 'mm1')
+create_report('SCENARIO 5', 'sch5', 'arr12', 'mm1')
+create_report('SCENARIO 5', 'sch5', 'arr31', 'mm3')
+create_report('SCENARIO 5', 'sch5', 'arr32', 'mm3')
