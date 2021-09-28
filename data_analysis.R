@@ -17,7 +17,7 @@ read_data <- function(ref) {
                                      "36-42 Month", "42-48 Month", "48-54 Month", "54-60 Month")))
  res[[1]] = pat
  queue <- arrow::read_feather(here('output',ref[1], paste0(ref[2],'-',ref[3],'-',ref[4],'-queue.feather')))
- res[[2]] = queue
+ res[[2]]=queue
  return(res)
 }
 
@@ -120,54 +120,92 @@ generate_outputs <- function(pat, queue, warm_up, ref) {
   # arrivals etc
   unique_arr <- pat %>% distinct(replication, patient_id) %>% count(replication) %>%
     summarize(mean = mean(n), sd = sd(n), median=median(n), min=min(n), max=max(n)) %>%
-    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='desc', values_to='unique_arrivals')
+    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='stat', values_to='unique_arrivals')
   
   total_scan <- pat %>% drop_na(replication, end_scan) %>% count(replication) %>% 
     summarize(mean = mean(n), sd = sd(n), median=median(n), min=min(n), max=max(n)) %>%
-    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='desc', values_to='total_scanned')
+    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='stat', values_to='total_scanned')
   
   total_return <- pat %>% count(replication) %>%
     full_join((pat %>% distinct(replication, patient_id) %>% count(replication)), by='replication') %>%
     mutate(n = n.x-n.y) %>%
     summarize(mean = mean(n), sd = sd(n), median=median(n), min=min(n), max=max(n)) %>%
-    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='desc', values_to='total_returns')
+    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='stat', values_to='total_returns')
+  
+  effective_arrival <- pat %>% mutate(arrival_day = floor(arrived)) %>%
+    count(replication, arrival_day) %>% group_by(replication) %>% summarize(n = mean(n)) %>%
+    summarize(mean = mean(n), sd = sd(n), median=median(n), min=min(n), max=max(n)) %>%
+    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='stat', values_to='effective_arr_rate')
   
   arr_data <- unique_arr %>% 
-    bind_cols(total_scan %>% select(-desc)) %>%
-    bind_cols(total_return %>% select(-desc))
+    bind_cols(total_scan %>% select(-stat)) %>%
+    bind_cols(total_return %>% select(-stat)) %>%
+    bind_cols(effective_arrival %>% select(-stat))
   
   
+
   # cancer staging
-  cancer <- pat %>% drop_na(start_scan) %>% 
+  staging_data <- pat %>% drop_na(start_scan) %>% 
     mutate(cancer = case_when(
-      cancer_stage == "Stage_1" ~ "Stage_1/2", cancer_stage == "Stage_2" ~ "Stage_1/2",
-      cancer_stage == "Stage_3" ~ "Stage_3/4", cancer_stage == "Stage_4" ~ "Stage_3/4")) %>%
+      cancer_stage == "Stage_1" ~ "stage_1_2", cancer_stage == "Stage_2" ~ "stage_1_2",
+      cancer_stage == "Stage_3" ~ "stage_3_4", cancer_stage == "Stage_4" ~ "stage_3_4",
+      TRUE ~ 'no_cancer')) %>%
     count(replication, cancer) %>%
-    mutate(n_cancer = case_when(cancer == "Stage_1/2" ~ n, cancer == "Stage_3/4" ~ n)) %>%
-    group_by(replication) %>%
-    mutate(p_tot = n/sum(n)*100) %>%
-    mutate(p_cancer = n_cancer/sum(n_cancer, na.rm = T)*100) %>%
-    drop_na() %>% select(replication, cancer, n, p_tot, p_cancer) %>% ungroup() %>%
-    group_by(cancer) %>%
-    summarize(
-      mean_c = mean(n), sd_c = sd(n), median_c = median(n), max_c = max(n), min_c = min(n),
-      mean_ptot = mean(p_tot), sd_ptot = sd(p_tot), median_ptot = median(p_tot), 
-      max_ptot = max(p_tot), min_ptot = min(p_tot),
-      mean_pcancer = mean(p_cancer), sd_pcancer = sd(p_cancer), median_pcancer = median(p_cancer), 
-      max_pcancer = max(p_cancer), min_pcancer = min(p_cancer)
-    ) %>%
-    pivot_longer(cols=c(
-      mean_c, sd_c, median_c, max_c, min_c,
-      mean_ptot, sd_ptot, median_ptot, max_ptot, min_ptot,
-      mean_pcancer, sd_pcancer, median_pcancer, max_pcancer, min_pcancer
-    )) %>%
-    separate(name, c('stat', 'category')) %>%
-    mutate(category = case_when(
-      category == 'c' ~ 'count',
-      category == 'ptot' ~ 'Percentage of Total Scans',
-      category == 'pcancer' ~ 'Pecentage of all Cancer Results'
-    )) %>%
-    pivot_wider(names_from = cancer, values_from = value)
+    pivot_wider(names_from=cancer,values_from=n) %>%
+    mutate(cancer = stage_1_2 + stage_3_4)
+  
+  no_cancer <- staging_data %>% select(replication, no_cancer) %>% rename(n = no_cancer) %>%
+    summarize(mean = mean(n), sd = sd(n), median=median(n), min=min(n), max=max(n)) %>%
+    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='stat', values_to='no_cancer')
+  
+  cancer <- staging_data %>% select(replication, cancer) %>% rename(n = cancer) %>%
+    summarize(mean = mean(n), sd = sd(n), median=median(n), min=min(n), max=max(n)) %>%
+    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='stat', values_to='cancer')
+  
+  stage12 <- staging_data %>% select(replication, stage_1_2) %>% rename(n = stage_1_2) %>%
+    summarize(mean = mean(n), sd = sd(n), median=median(n), min=min(n), max=max(n)) %>%
+    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='stat', values_to='stage_1_2')
+  
+  stage34 <- staging_data %>% select(replication, stage_3_4) %>% rename(n = stage_3_4) %>%
+    summarize(mean = mean(n), sd = sd(n), median=median(n), min=min(n), max=max(n)) %>%
+    pivot_longer(cols=c('mean','sd', 'median', 'max','min'), names_to='stat', values_to='stage_3_4')
+  
+  cancer_data <- no_cancer %>% 
+    bind_cols(cancer %>% select(-stat)) %>%
+    bind_cols(stage12 %>% select(-stat)) %>%
+    bind_cols(stage34 %>% select(-stat)) %>%
+    mutate()
+  
+  # cancer <- pat %>% drop_na(start_scan) %>% 
+  #   mutate(cancer = case_when(
+  #     cancer_stage == "Stage_1" ~ "Stage_1_2", cancer_stage == "Stage_2" ~ "Stage_1_2",
+  #     cancer_stage == "Stage_3" ~ "Stage_3_4", cancer_stage == "Stage_4" ~ "Stage_3_4")) %>%
+  #   count(replication, cancer) %>%
+  #   mutate(n_cancer = case_when(cancer == "Stage_1/2" ~ n, cancer == "Stage_3/4" ~ n)) %>%
+  #   group_by(replication) %>%
+  #   mutate(p_tot = n/sum(n)*100) %>%
+  #   mutate(p_cancer = n_cancer/sum(n_cancer, na.rm = T)*100) %>%
+  #   drop_na() %>% select(replication, cancer, n, p_tot, p_cancer) %>% ungroup() %>%
+  #   group_by(cancer) %>%
+  #   summarize(
+  #     mean_c = mean(n), sd_c = sd(n), median_c = median(n), max_c = max(n), min_c = min(n),
+  #     mean_ptot = mean(p_tot), sd_ptot = sd(p_tot), median_ptot = median(p_tot), 
+  #     max_ptot = max(p_tot), min_ptot = min(p_tot),
+  #     mean_pcancer = mean(p_cancer), sd_pcancer = sd(p_cancer), median_pcancer = median(p_cancer), 
+  #     max_pcancer = max(p_cancer), min_pcancer = min(p_cancer)
+  #   ) %>%
+  #   pivot_longer(cols=c(
+  #     mean_c, sd_c, median_c, max_c, min_c,
+  #     mean_ptot, sd_ptot, median_ptot, max_ptot, min_ptot,
+  #     mean_pcancer, sd_pcancer, median_pcancer, max_pcancer, min_pcancer
+  #   )) %>%
+  #   separate(name, c('stat', 'category')) %>%
+  #   mutate(category = case_when(
+  #     category == 'c' ~ 'count',
+  #     category == 'ptot' ~ 'Percentage of Total Scans',
+  #     category == 'pcancer' ~ 'Pecentage of all Cancer Results'
+  #   )) %>%
+  #   pivot_wider(names_from = cancer, values_from = value)
 
   # time in queue and queue size
   wait_times <- pat %>% drop_na(start_scan) %>%
@@ -228,7 +266,7 @@ generate_outputs <- function(pat, queue, warm_up, ref) {
     pivot_longer(cols=everything(), names_to='stat', values_to='Utilization')
 
   # Export
-  write.xlsx(cancer, 
+  write.xlsx(cancer_data, 
              here('output',ref[1], paste0(ref[2],'-',ref[3],'-',ref[4],'-res.xlsx')),
              sheetName = "Cancer Data", 
              col.names = TRUE, row.names = TRUE, append = FALSE)
@@ -257,32 +295,92 @@ create_report <- function(scenario_folder, scenario_name, arrival_rate, capacity
   generate_outputs(pat_data, queue_data, warm_up_days, reference)
 }
 
-create_report('Baseline', 'baseline', 'arr11', 'mm1')
-create_report('Baseline', 'baseline', 'arr12', 'mm1')
-create_report('Baseline', 'baseline', 'arr31', 'mm3')
-create_report('Baseline', 'baseline', 'arr32', 'mm3')
 
-create_report('SCENARIO 1', 'sch1', 'arr11', 'mm1')
-create_report('SCENARIO 1', 'sch1', 'arr12', 'mm1')
-create_report('SCENARIO 1', 'sch1', 'arr31', 'mm3')
-create_report('SCENARIO 1', 'sch1', 'arr32', 'mm3')
+arr <- 'arr10'
+ref1 <- c('Baseline', 'baseline', arr, 'mm1-growth90')
+ref2 <- c('Baseline', 'baseline', arr, 'mm1-growth180')
+ref3 <- c('Baseline', 'baseline', arr, 'mm1')
 
-create_report('SCENARIO 2', 'sch2', 'arr11', 'mm1')
-create_report('SCENARIO 2', 'sch2', 'arr12', 'mm1')
-create_report('SCENARIO 2', 'sch2', 'arr31', 'mm3')
-create_report('SCENARIO 2', 'sch2', 'arr32', 'mm3')
+patient_180 <- read_data(ref2)[[1]]
+patient_90 <- read_data(ref1)[[1]]
+patient_normal <- read_data(ref3)[[1]]
 
-create_report('SCENARIO 3', 'sch3', 'arr11', 'mm1')
-create_report('SCENARIO 3', 'sch3', 'arr12', 'mm1')
-create_report('SCENARIO 3', 'sch3', 'arr31', 'mm3')
-create_report('SCENARIO 3', 'sch3', 'arr32', 'mm3')
 
-create_report('SCENARIO 4', 'sch4', 'arr11', 'mm1')
-create_report('SCENARIO 4', 'sch4', 'arr12', 'mm1')
-create_report('SCENARIO 4', 'sch4', 'arr31', 'mm3')
-create_report('SCENARIO 4', 'sch4', 'arr32', 'mm3')
+arr_mm1 <- c('arr6','arr8.6','arr10','arr11','arr12','arr15')
+for (val in arr_mm1) {
+  create_report('Baseline', 'baseline', val, 'mm1')
+  create_report('SCENARIO 1', 'sch1', val, 'mm1')
+  create_report('SCENARIO 2', 'sch2', val, 'mm1')
+  create_report('SCENARIO 3', 'sch3', val, 'mm1')
+  create_report('SCENARIO 4', 'sch4', val, 'mm1')
+  create_report('SCENARIO 5', 'sch5', val, 'mm1')
+}
 
-create_report('SCENARIO 5', 'sch5', 'arr11', 'mm1')
-create_report('SCENARIO 5', 'sch5', 'arr12', 'mm1')
-create_report('SCENARIO 5', 'sch5', 'arr31', 'mm3')
-create_report('SCENARIO 5', 'sch5', 'arr32', 'mm3')
+val = 'arr10'
+create_report('Baseline', 'baseline', val, 'mm1-growth90')
+create_report('SCENARIO 1', 'sch1', val, 'mm1-growth90')
+create_report('SCENARIO 2', 'sch2', val, 'mm1-growth90')
+create_report('SCENARIO 3', 'sch3', val, 'mm1-growth90')
+create_report('SCENARIO 4', 'sch4', val, 'mm1-growth90')
+create_report('SCENARIO 5', 'sch5', val, 'mm1-growth90')
+
+create_report('Baseline', 'baseline', val, 'mm1-growth120')
+create_report('SCENARIO 1', 'sch1', val, 'mm1-growth120')
+create_report('SCENARIO 2', 'sch2', val, 'mm1-growth120')
+create_report('SCENARIO 3', 'sch3', val, 'mm1-growth120')
+create_report('SCENARIO 4', 'sch4', val, 'mm1-growth120')
+create_report('SCENARIO 5', 'sch5', val, 'mm1-growth120')
+
+create_report('Baseline', 'baseline', val, 'mm1-growth150')
+create_report('SCENARIO 1', 'sch1', val, 'mm1-growth150')
+create_report('SCENARIO 2', 'sch2', val, 'mm1-growth150')
+create_report('SCENARIO 3', 'sch3', val, 'mm1-growth150')
+create_report('SCENARIO 4', 'sch4', val, 'mm1-growth150')
+create_report('SCENARIO 5', 'sch5', val, 'mm1-growth150')
+
+create_report('Baseline', 'baseline', val, 'mm1-growth180')
+create_report('SCENARIO 1', 'sch1', val, 'mm1-growth180')
+create_report('SCENARIO 2', 'sch2', val, 'mm1-growth180')
+create_report('SCENARIO 3', 'sch3', val, 'mm1-growth180')
+create_report('SCENARIO 4', 'sch4', val, 'mm1-growth180')
+create_report('SCENARIO 5', 'sch5', val, 'mm1-growth180')
+
+
+arr_mm3 <- c('arr18','arr25.8','arr30','arr31','arr32','arr45')
+for (val in arr_mm3) {
+  create_report('Baseline', 'baseline', val, 'mm3')
+  create_report('SCENARIO 1', 'sch1', val, 'mm3')
+  create_report('SCENARIO 2', 'sch2', val, 'mm3')
+  create_report('SCENARIO 3', 'sch3', val, 'mm3')
+  create_report('SCENARIO 4', 'sch4', val, 'mm3')
+  create_report('SCENARIO 5', 'sch5', val, 'mm3')
+}
+
+val = 'arr30'
+create_report('Baseline', 'baseline', val, 'mm3-growth90')
+create_report('SCENARIO 1', 'sch1', val, 'mm3-growth90')
+create_report('SCENARIO 2', 'sch2', val, 'mm3-growth90')
+create_report('SCENARIO 3', 'sch3', val, 'mm3-growth90')
+create_report('SCENARIO 4', 'sch4', val, 'mm3-growth90')
+create_report('SCENARIO 5', 'sch5', val, 'mm3-growth90')
+
+create_report('Baseline', 'baseline', val, 'mm3-growth120')
+create_report('SCENARIO 1', 'sch1', val, 'mm3-growth120')
+create_report('SCENARIO 2', 'sch2', val, 'mm3-growth120')
+create_report('SCENARIO 3', 'sch3', val, 'mm3-growth120')
+create_report('SCENARIO 4', 'sch4', val, 'mm3-growth120')
+create_report('SCENARIO 5', 'sch5', val, 'mm3-growth120')
+
+create_report('Baseline', 'baseline', val, 'mm3-growth150')
+create_report('SCENARIO 1', 'sch1', val, 'mm3-growth150')
+create_report('SCENARIO 2', 'sch2', val, 'mm3-growth150')
+create_report('SCENARIO 3', 'sch3', val, 'mm3-growth150')
+create_report('SCENARIO 4', 'sch4', val, 'mm3-growth150')
+create_report('SCENARIO 5', 'sch5', val, 'mm3-growth150')
+
+create_report('Baseline', 'baseline', val, 'mm3-growth180')
+create_report('SCENARIO 1', 'sch1', val, 'mm3-growth180')
+create_report('SCENARIO 2', 'sch2', val, 'mm3-growth180')
+create_report('SCENARIO 3', 'sch3', val, 'mm3-growth180')
+create_report('SCENARIO 4', 'sch4', val, 'mm3-growth180')
+create_report('SCENARIO 5', 'sch5', val, 'mm3-growth180')

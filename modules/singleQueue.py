@@ -172,12 +172,14 @@ class Nadia_Simulation:
         counter = 1
         while patient_wait >= counter*growth_interval:
             for i in range(len(cancer_distribution)):
-                cancer_distribution[i] = cancer_distribution[i] * cancer_growth[i]
-            total = np.sum(cancer_distribution)
-            for i in range(len(cancer_distribution)):
-                cancer_distribution[i] = cancer_distribution[i]/total
+                cancer_distribution[i] += cancer_growth[i]*(growth_interval/30)
+            # total = np.sum(cancer_distribution)
+            # for i in range(len(cancer_distribution)):
+            #     cancer_distribution[i] = cancer_distribution[i]/total
             counter += 1
         cancer_distribution = np.cumsum(cancer_distribution)
+
+        # print(f'PatientWait: {patient_wait}, CancerGrowth: {cancer_growth}, distribution: {cancer_distribution}')
 
         # Generates Cancer Type
         for i in range(len(cancer_distribution)):
